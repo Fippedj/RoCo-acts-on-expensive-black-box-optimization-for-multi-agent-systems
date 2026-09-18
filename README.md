@@ -51,3 +51,6 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 The paper specifies GPT-4o-mini, population size `N=10`, collaboration rounds `T=3`, and role temperatures. It does not disclose OS, Python/dependency versions, hardware, long-term-memory retrieval, or full retry policies. The primary environment here is Linux/WSL2 + Conda + Python 3.11 as an engineering decision, not a claim about the authors' machine.
 
 See `docs/START_HERE.md` before writing Stage 1 code.
+## Original repository purpose
+
+把 RoCo 发展成多智能体昂贵黑盒优化方法
