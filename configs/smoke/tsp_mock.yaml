@@ -1,0 +1,23 @@
+# Cheap deterministic local-development run; not a paper result.
+run:
+  seed: 7
+  objective: minimize
+  budgets:
+    max_valid_evals: 20
+    max_llm_calls: 20
+    max_tokens: 20000
+
+llm:
+  provider: mock
+
+evolution:
+  population_size: 4
+  generations: 2
+  collaboration_rounds: 1
+  elite_sampling_power: 3.0
+
+benchmark:
+  name: tsp
+  nodes: 20
+  instances: 1
+  evaluator_timeout_seconds: 5

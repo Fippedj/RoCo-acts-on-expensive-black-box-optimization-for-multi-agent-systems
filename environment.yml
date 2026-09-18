@@ -1,0 +1,22 @@
+name: roco-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - numpy<2
+  - scipy
+  - pandas
+  - scikit-learn
+  - networkx
+  - pydantic>=2.7,<3
+  - hydra-core
+  - jinja2
+  - psutil
+  - pytest
+  - pytest-cov
+  - ruff
+  - mypy
+  - pip:
+      - openai>=1.0
+      - tiktoken

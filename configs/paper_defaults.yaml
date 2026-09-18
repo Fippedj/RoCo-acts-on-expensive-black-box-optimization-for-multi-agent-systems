@@ -1,0 +1,32 @@
+# Paper-aligned settings. Items marked "engineering" are not fully disclosed in RoCo.
+run:
+  seed: 2025
+  objective: minimize
+  budgets:
+    # Appendix D reports a maximum of 400 evaluations.
+    max_valid_evals: 400
+    # Main text reports 400 LLM calls per generation. Set explicitly per study.
+    max_llm_calls: null
+    max_tokens: null
+
+llm:
+  model: gpt-4o-mini
+  temperatures:
+    explorer: 1.3
+    exploiter: 0.8
+    critic: 1.0
+    integrator: 1.0
+
+evolution:
+  population_size: 10
+  collaboration_rounds: 3
+  elite_sampling_power: 3.0
+
+memory:
+  # Engineering V1: the paper does not disclose memory storage/retrieval.
+  backend: jsonl
+  recent_events: 5
+
+evaluation:
+  train_timeout_seconds: 60
+  cvrp_train_timeout_seconds: 120

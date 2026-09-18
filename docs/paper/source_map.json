@@ -1,0 +1,68 @@
+{
+  "paper": {
+    "title": "RoCo: Role-Based LLMs Collaboration for Automatic Heuristic Design",
+    "venue": "arXiv preprint",
+    "source_type": "pdf",
+    "language": "en",
+    "source_path": "C:/Users/风与纸片人/Desktop/RoCo Role-Based LLMs Collaboration for Automatic Heuristic Design.pdf"
+  },
+  "blocks": [
+    {"id":"S001","page":1,"type":"paragraph","order":1,"original_text":"Automatic Heuristic Design (AHD) has gained traction...","translation":"自动启发式设计逐渐成为求解组合优化问题的重要途径。","confidence":"high","refs":[]},
+    {"id":"S002","page":1,"type":"paragraph","order":2,"original_text":"RoCo coordinates four specialized LLM-guided agents...","translation":"RoCo 协调探索者、利用者、批评者和集成者。","confidence":"high","refs":[]},
+    {"id":"S003","page":2,"type":"paragraph","order":3,"original_text":"These agents interact in a structured multi-round process...","translation":"四类智能体执行结构化多轮反馈、精炼和精英变异。","confidence":"high","refs":[]},
+    {"id":"S004","page":2,"type":"paragraph","order":4,"original_text":"A combinatorial optimization problem is formulated as P=(I_P,S_P,f)...","translation":"COP 由实例集、可行解集和目标函数构成，AHD 搜索高质量启发式。","confidence":"high","refs":[]},
+    {"id":"S005","page":3,"type":"paragraph","order":5,"original_text":"RoCo operates as a plug-in system integrated within EoH...","translation":"RoCo 作为插件嵌入 EoH，合并标准候选、协作输出和记忆变异。","confidence":"high","refs":["F001"]},
+    {"id":"S006","page":4,"type":"paragraph","order":6,"original_text":"The four main roles are defined by role-specific policies...","translation":"四类角色分别负责探索、局部改进、批评和融合。","confidence":"high","refs":[]},
+    {"id":"S007","page":4,"type":"paragraph","order":7,"original_text":"After T rounds, short-term reflections are synthesized...","translation":"短期反思结合目标变化被压缩为长期角色记忆。","confidence":"high","refs":[]},
+    {"id":"S008","page":10,"type":"paragraph","order":8,"original_text":"The pseudocode samples an elite pair...","translation":"伪代码执行精英对采样、多轮协作、长期反思、记忆变异和 Top-N 保留。","confidence":"high","refs":[]},
+    {"id":"S009","page":5,"type":"paragraph","order":9,"original_text":"The experiments cover TSP, CVRP, OP, MKP, and offline BPP...","translation":"实验覆盖五类 COP，并采用 GPT-4o-mini、3 轮协作和每代 400 次调用上限。","confidence":"high","refs":["F002","T001","T002","T003"]},
+    {"id":"S010","page":1,"type":"note","order":10,"original_text":"The paper’s empirical story is that role specialization...","translation":"经验性主张是角色专门化、多轮反思和精英记忆改善收敛与鲁棒性。","confidence":"high","refs":[]},
+    {"id":"S011","page":15,"type":"note","order":11,"original_text":"The long-term reflection, historical memory, role policies...","translation":"长期记忆和角色策略主要通过提示词描述，复现细节不充分。","confidence":"medium","refs":[]},
+    {"id":"S012","page":7,"type":"note","order":12,"original_text":"The paper concludes that RoCo provides a role-based multi-agent paradigm...","translation":"结论提出角色化 LLM-AHD 范式，并把连续/混合整数优化列为未来方向。","confidence":"high","refs":[]},
+    {"id":"S013","page":3,"type":"note","order":13,"original_text":"RoCo’s natural abstraction is a population of executable heuristics...","translation":"迁移到昂贵黑盒优化时，应改为候选点、oracle 观测和 surrogate 数据集。","confidence":"high","refs":[]},
+    {"id":"S014","page":4,"type":"note","order":14,"original_text":"Explorer–exploiter collaboration balances long-term novelty...","translation":"在昂贵场景中，集成者应成为考虑预算和不确定性的 acquisition/资源分配器。","confidence":"high","refs":[]},
+    {"id":"S015","page":10,"type":"note","order":15,"original_text":"The appendix provides pseudocode, benchmark generation details...","translation":"附录给出伪代码、数据、参数、提示词和启发式代码示例。","confidence":"high","refs":[]},
+    {"id":"F001","page":4,"type":"figure","order":16,"original_text":"Figure 1: The architecture of the RoCo system...","translation":"RoCo 系统架构图。","confidence":"high","refs":[],"image_path":"assets/fig1.png","bbox":[170,55,1070,490]},
+    {"id":"F002","page":5,"type":"figure","order":17,"original_text":"Figure 2: Evolution curves of different LLM-based AHD methods...","translation":"不同 LLM-AHD 方法的收敛曲线。","confidence":"high","refs":[],"image_path":"assets/fig2.png","bbox":[145,55,1075,285]},
+    {"id":"F003","page":7,"type":"figure","order":18,"original_text":"Figure 3: Heuristic performance evaluation...","translation":"black-box prompt 下的均值与标准差。","confidence":"high","refs":[],"image_path":"assets/fig3.png","bbox":[125,450,1110,655]},
+    {"id":"T001","page":6,"type":"table","order":19,"original_text":"Table 1: Designing heuristics with the ACO general framework...","translation":"ACO white-box 结果。","confidence":"high","refs":[],"image_path":"assets/table1.png","bbox":[145,35,1100,410]},
+    {"id":"T002","page":6,"type":"table","order":20,"original_text":"Table 2: Designing heuristics with the ACO general framework...","translation":"ACO black-box prompt 结果。","confidence":"high","refs":[],"image_path":"assets/table2.png","bbox":[145,430,1100,710]},
+    {"id":"T003","page":6,"type":"table","order":21,"original_text":"Table 3: Ablation study of RoCo components...","translation":"RoCo 组件消融。","confidence":"high","refs":[],"image_path":"assets/table3.png","bbox":[625,690,1100,1055]},
+    {"id":"T004","page":7,"type":"table","order":22,"original_text":"Table 4: Evaluation results of different local search variants...","translation":"GLS/TSP 的最优性缺口。","confidence":"high","refs":[],"image_path":"assets/table4.png","bbox":[180,35,1060,435]}
+  ],
+  "pages": [
+    {"page":1,"block_ids":["S001","S002","S010"]},
+    {"page":2,"block_ids":["S003","S004"]},
+    {"page":3,"block_ids":["S005","S013"]},
+    {"page":4,"block_ids":["F001","S006","S007"]},
+    {"page":5,"block_ids":["F002","S009"]},
+    {"page":6,"block_ids":["T001","T002","T003"]},
+    {"page":7,"block_ids":["T004","F003","S012"]},
+    {"page":8,"block_ids":[]},
+    {"page":9,"block_ids":[]},
+    {"page":10,"block_ids":["S008","S015"]},
+    {"page":11,"block_ids":[]},
+    {"page":12,"block_ids":[]},
+    {"page":13,"block_ids":[]},
+    {"page":14,"block_ids":[]},
+    {"page":15,"block_ids":["S011"]},
+    {"page":16,"block_ids":["S011"]},
+    {"page":17,"block_ids":[]},
+    {"page":18,"block_ids":[]},
+    {"page":19,"block_ids":[]},
+    {"page":20,"block_ids":[]},
+    {"page":21,"block_ids":[]},
+    {"page":22,"block_ids":[]}
+  ],
+  "figures":[
+    {"id":"F001","page":4,"caption_id":"F001","image_path":"assets/fig1.png","bbox":[170,55,1070,490],"placement_hint":"near_first_mention","placed_after":"S005","alt_text":"RoCo role-based collaboration, reflection, and elite mutation loop"},
+    {"id":"F002","page":5,"caption_id":"F002","image_path":"assets/fig2.png","bbox":[145,55,1075,285],"placement_hint":"near_first_mention","placed_after":"S009","alt_text":"Convergence curves for RoCo, ReEvo, MCTS, and EoH"},
+    {"id":"F003","page":7,"caption_id":"F003","image_path":"assets/fig3.png","bbox":[125,450,1110,655],"placement_hint":"near_first_mention","placed_after":"T002","alt_text":"Mean and standard deviation across five black-box prompt benchmarks"}
+  ],
+  "glossary":[
+    {"term":"Automatic Heuristic Design","translation":"自动启发式设计","note":"AHD"},
+    {"term":"LLM-EPS","translation":"基于大语言模型的进化程序搜索","note":"LLM-based Evolutionary Program Search"},
+    {"term":"explorer / exploiter / critic / integrator","translation":"探索者 / 利用者 / 批评者 / 集成者","note":"RoCo roles"},
+    {"term":"black-box prompt setting","translation":"黑盒提示词设置","note":"Prompt-level information restriction, not expensive-oracle black-box optimization"}
+  ]
+}
