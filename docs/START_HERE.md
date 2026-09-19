@@ -29,6 +29,22 @@ The committed `.vscode/` settings enable pytest discovery and Ruff formatting. T
 
 The paper's body says 400 LLM calls per generation, while its appendix says a maximum of 400 evaluations. Treat these as distinct counters and always choose explicit hard limits in an experiment config.
 
+## Current checkpoint and next task
+
+The active Stage 4 worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage4` on
+`stage/04-reflection-memory`. Its published checkpoint is
+`cf1e06b5fcaac29a4c17694e2f1f336e784a9521` (`docs: freeze Stage 4 memory design`),
+tracking `origin/stage/04-reflection-memory`; at the 2026-09-19 status audit, local and upstream
+were at the same commit. This checkpoint makes the Stage 4 design 100% complete and the published
+Stage 4 runtime implementation 0% complete. ADR-0004 and the memory specification are design
+contracts, not evidence that the runtime exists.
+
+P2 is complete. The next development task is P3a: implement the strict memory schemas, pure
+Stage 3 trace-to-event conversion, immutable generation segment store, SHA-256/commit-last
+publication, and JSON-safe checkpoint recovery foundation. Only after P3a is accepted should P3b
+add role summaries, deterministic K=5 retrieval, prompt truncation, and memory-guided mutation to
+the runtime path.
+
 ## Current Stage 3 executable scope
 
 There are two deliberately separate offline smoke paths:
@@ -55,4 +71,4 @@ python -m roco_ebbo smoke --config configs/smoke/tsp_roco_mock.yaml
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Before Stage 4 code, read `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; they define the trace-to-memory boundary, retrieval, budgets, commit protocol, and recovery invariants for the still-unimplemented runtime.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Before P3a, read `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; they define the trace-to-memory boundary, budgets, commit protocol, and recovery invariants for the still-unimplemented published runtime. Keep P3b retrieval, summarization, truncation, and mutation integration out of the P3a foundation task.

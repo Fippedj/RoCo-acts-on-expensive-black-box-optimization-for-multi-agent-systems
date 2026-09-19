@@ -32,17 +32,22 @@ git diff --check
 ```yaml
 snapshot:
   date: 2026-09-19
-  repository: /home/fj/RoCo-BO/RoCo-ebbo-stage3
+  repository: /home/fj/RoCo-BO/RoCo-ebbo-stage4
   origin: https://github.com/Fippedj/RoCo-acts-on-expensive-black-box-optimization-for-multi-agent-systems.git
-  branch: stage/03-role-collaboration
-  stage3_parent: 96eec77c467f73a0492740e7dc92e08711cb906e
-  current_head: "run: git rev-parse HEAD"
-  expected_head_subject: "feat: add deterministic RoCo role collaboration"
-  upstream: origin/stage/03-role-collaboration
+  branch: stage/04-reflection-memory
+  stage4_parent: f6f3e1dd19427704971d443f28e894ce57af3676
+  current_head: cf1e06b5fcaac29a4c17694e2f1f336e784a9521
+  expected_head_subject: "docs: freeze Stage 4 memory design"
+  upstream: origin/stage/04-reflection-memory
+  ahead_of_upstream: 0
+  behind_upstream: 0
   stage3_implementation_commit: 2ce66a4f66c0e446fa8b44a729783074cc13064a
-  stage3_committed_locally: true
-  stage3_pushed: true
-  expected_worktree_clean: true
+  stage3_publication_commit: f6f3e1dd19427704971d443f28e894ce57af3676
+  stage4_design_commit: cf1e06b5fcaac29a4c17694e2f1f336e784a9521
+  stage4_design_committed_locally: true
+  stage4_design_pushed: true
+  stage4_runtime_published: false
+  expected_worktree_clean: false
   agents_md_present: false
   codegraph_present: false
   network_required: false
@@ -62,8 +67,10 @@ snapshot:
     git_diff_check: passed
 ```
 
-重要：Stage 3 已提交并发布到 `origin/stage/03-role-collaboration`。精确 HEAD、远端
-同步状态和工作区是否仍干净必须用本文件开头的只读命令复核，不能根据文档猜测。
+重要：Stage 4 设计已由 `cf1e06b` 冻结，并发布到
+`origin/stage/04-reflection-memory`；该提交只包含设计，不表示 Stage 4 运行时已经实现。
+快照时工作区还存在未提交的 `src/`/`tests/` 修改，它们不属于这个已发布检查点，也不能
+据此更新完成度。精确 HEAD、远端同步状态和工作区必须用本文件开头的只读命令复核。
 
 ## 2. 分支和 worktree 关系
 
@@ -79,8 +86,13 @@ stage/01-paper-spec / origin/stage/01-paper-spec
 stage/02-eoh-mvp / origin/stage/02-eoh-mvp
   96eec77  feat: add deterministic EoH smoke baseline
       |
+  2ce66a4  feat: add deterministic RoCo role collaboration
+      |
 stage/03-role-collaboration / origin/stage/03-role-collaboration
-  <local Stage 3 commit>  feat: add deterministic RoCo role collaboration
+  f6f3e1d  docs: record Stage 3 publication status
+      |
+stage/04-reflection-memory / origin/stage/04-reflection-memory
+  cf1e06b  docs: freeze Stage 4 memory design
 ```
 
 `stage/02-eoh-mvp` 还在另一个 worktree：
@@ -89,11 +101,21 @@ stage/03-role-collaboration / origin/stage/03-role-collaboration
 /home/fj/RoCo-BO/RoCo-ebbo
 ```
 
-当前 Stage 3 worktree：
+Stage 3 worktree：
 
 ```text
 /home/fj/RoCo-BO/RoCo-ebbo-stage3
 ```
+
+当前 Stage 4 worktree：
+
+```text
+/home/fj/RoCo-BO/RoCo-ebbo-stage4
+```
+
+当前分支 `stage/04-reflection-memory` 跟踪同名远端分支；快照时本地与 upstream 的
+ahead/behind 为 `0/0`。工作区中的未提交修改必须作为独立在途工作保留，不能误算进
+`cf1e06b` 的设计发布，也不能由状态文档任务覆盖。
 
 本机 `roco-dev` 环境中的 editable install 曾指向 Stage 2 的兄弟 worktree。为确保验证加载当前源码，最近一次验证先设置了：
 
@@ -163,7 +185,7 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 | Stage 1：论文规格 | 已提交并有远端分支 | algorithm、参数登记、缺口表、ADR-0001 | 100% |
 | Stage 2：确定性 EoH MVP | 已提交并有远端分支 | Mock、预算、Candidate/Population、TSP-20 evaluator、CLI smoke | 100% |
 | Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
-| Stage 4：反思与跨代记忆 | 设计已冻结、运行时未实现 | ADR-0004、memory 可执行规格、gap/config 契约 | 设计 100%，实现 0% |
+| Stage 4：反思与跨代记忆 | 设计已冻结、已提交并发布；运行时未实现 | ADR-0004、memory 可执行规格、gap/config 契约 | 设计 100%，运行时 0% |
 | Stage 5：论文实验对齐 | 未实现 | 只有路线图和 TSP-20 开发 evaluator | 0% |
 | Stage 6：多智能体 EBBO | 未实现 | 只有研究分析和路线图 | 0% |
 
@@ -312,15 +334,14 @@ status / error_type / error_message
 
 ### Stage 4
 
-- 已完成设计：`roco-memory-event-v1`、角色摘要、minimize `delta_g`、K=5 的 3/2 成败检索、每精英 E/X/I 三次 mutation、代级 segment/commit/checkpoint 与恢复不变量；
-- LTReflect；
-- `RoleMemorySummary` 或长期反思摘要；
-- 跨代 JSONL memory event store；
-- 最近 K 条检索、成功/失败平衡或相似度检索；
-- prompt 上下文截断和删除审计；
-- memory-guided mutation；
-- checkpoint 和崩溃恢复；
-- 记忆消融。
+- 已完成并发布的仅是设计：`roco-memory-event-v1`、角色摘要、minimize `delta_g`、
+  K=5 的 3/2 成败检索、每精英 E/X/I 三次 mutation、代级
+  segment/commit/checkpoint 与恢复不变量；
+- P3a 尚未发布实现：严格 memory schema、Stage 3 trace 纯转换器、不可变 generation
+  segment、commit-last 校验、checkpoint 序列化与恢复读取底座；
+- P3a 完成之后才进入：LTReflect/角色摘要运行时、K=5 检索、prompt 截断与删除审计、
+  memory-guided mutation 接入；
+- 记忆消融仍在上述运行时接入之后。
 
 ### Stage 5
 
@@ -344,8 +365,9 @@ status / error_type / error_message
 ```text
 P0  Stage 3 最终审计/小范围加固（已完成）
   -> P1  Stage 3 提交并发布远端分支（已完成）
-  -> P2  Stage 4 先写可执行规格和 ADR-0004（已完成，待审计提交）
-  -> P3  Stage 4 实现 memory + LTReflect + memory mutation（当前下一开发任务）
+  -> P2  Stage 4 可执行规格和 ADR-0004（已完成、已提交并发布）
+  -> P3a memory schema/trace 转换/segment store/commit-last/checkpoint 恢复底座（当前下一开发任务）
+  -> P3b 角色摘要/K=5 检索/prompt 截断/memory mutation 接入（P3a 之后）
   -> P4  Stage 4 确定性恢复/消融验收
   -> P5  真实 provider 的独立小预算接入
   -> P6  Stage 5 TSP 论文实验对齐
@@ -354,7 +376,8 @@ P0  Stage 3 最终审计/小范围加固（已完成）
   -> P9  EBBO 最小基线和角色控制层
 ```
 
-不要把 P3、P5 和 P6 合成一次任务：记忆语义、真实 API 风险和论文实验协议应该分别审查。
+不要把 P3a、P3b、P5 和 P6 合成一次任务：事实/恢复底座、运行时记忆接入、真实 API
+风险和论文实验协议应该分别审查。
 
 ## 10. 通用任务提示词模板
 
@@ -441,7 +464,7 @@ Git 限制：
 不要 push，不创建 tag，不 rebase，不修改其他分支。最后报告 commit SHA、文件清单、验证结果和仍未实现的 Stage 4 边界。
 ```
 
-### 11.3 Prompt C：Stage 4 规格与 ADR（只设计，不实现）
+### 11.3 Prompt C：Stage 4 规格与 ADR（已完成，保留作设计模板）
 
 ```text
 在开始 Stage 4 编码前，基于 `docs/AI_PROJECT_STATE_AND_PROMPT_GUIDE.md`、ADR-0001/0003、paper_spec 和 gap_registry，设计可执行的 Stage 4 反思与记忆规格。本任务只写文档、schema 示例和测试计划，不实现 memory 代码。
@@ -451,7 +474,7 @@ Git 限制：
 新增 ADR-0004 和 `docs/paper_spec/memory.md`，更新 gap registry 与配置注释。明确区分论文事实、合理推断和工程决定。不得实现代码、真实 API、向量库、其他 benchmark 或 EBBO。最后输出可直接交给实现 AI 的 Stage 4 编码提示词。
 ```
 
-### 11.4 Prompt D：Stage 4 确定性实现
+### 11.4 Prompt D：Stage 4 P3a 事实层与恢复底座（当前下一开发任务）
 
 ```text
 你正在 `/home/fj/RoCo-BO/RoCo-ebbo-stage4` 的 `stage/04-reflection-memory` 分支工作。
@@ -461,26 +484,27 @@ Git 限制：
 预算、配置和测试。若存在 AGENTS.md 或 `.codegraph/`，先按其规则执行。核对分支、HEAD
 和未提交改动，不得覆盖已有工作；先输出简短实现方案。
 
-只按已冻结的 Stage 4 schema 实现 LTReflect、跨代记忆和 memory-guided mutation。建议
-分两次可审计实现：先完成 schema/纯转换器/generation segment store/commit/checkpoint/
-恢复及单元测试，再把角色摘要、K=5 检索、prompt 截断和 mutation 接入 engine。
+只按已冻结的 Stage 4 schema 实现可脱离运行时 mutation 独立测试的事实层与恢复底座：
+严格 JSON-safe schema、Stage 3 generation-local trace 的纯转换器、不可变 generation
+segment、SHA-256 manifest、commit-last 原子发布，以及 checkpoint 序列化和恢复读取接口。
 
-要求：复用 Candidate、BudgetLedger、provider、evaluator 和 Stage 3 trace；实现
-`roco-memory-event-v1` 和摘要 schema；最小化 `delta_g=before-after`；每代不可变 JSONL
-segment 与 commit-last 哈希校验；显式 JSON-safe 的随机/Mock provider 游标；确定性 K=5
-（改善 3、其他/失败 2，不足补位）；摘要和原始事件分离；每个配置精英从 Explorer、
-Exploiter、Integrator 三种视角各生成一个候选；按优先级确定性截断并记录删除审计；
-所有候选仍走 AST/子进程/timeout/预算；中断恢复后与不中断运行在非时间状态和工件哈希
-上一致；无效记忆、摘要、provider 输出和预算耗尽安全降级。
+要求：复用 Candidate、Population、BudgetLedger、Mock provider 和 Stage 3 trace；实现
+`roco-memory-event-v1` 与角色摘要/检查点数据模型；最小化
+`delta_g=before-after`；稳定 event ID；有限文本清理；每代不可变 JSONL segment 与
+commit-last 哈希校验；显式 JSON-safe 的随机/Mock provider snapshot；只从连续有效 commit
+恢复；缺 commit、坏 hash、临时文件和孤儿工件必须忽略并报告；已提交 segment 不得改写，
+相同内容重提幂等，内容冲突 fail closed。
 
 保持 Stage 2 smoke 12 calls/12 valid evaluations 和 Stage 3 T=2 smoke 18 calls/13 valid
-evaluations 完全回归；新增独立两代 memory Mock smoke。至少测试 schema round-trip、非有限
-数拒绝、稳定 ID、trace 映射、失败事件、3/2 检索/补位、摘要失败回退、每精英三角色、
-timeout/provider/各预算中断、半写/坏哈希/缺 commit、恢复等价和 memory/no-memory 消融。
+evaluations 完全回归。至少测试 schema round-trip、非有限数拒绝、文本清理、minimize
+delta、稳定 ID、E/X/I 成功与失败 trace 映射、selected IDs 回填、正常写读、半写/坏哈希/
+缺 commit、非连续 generation、重提交冲突及 population/账本 checkpoint 恢复。
 
-不得实现真实 API、向量库、自动修复、缓存/去重、其他 benchmark、最大化 objective 或
-EBBO。完成后不要暂存、commit、push；执行完整 pytest、Ruff、mypy、doctor、三个 smoke
-和 `git diff --check`，报告精确预算推演、变更文件、恢复证据及剩余风险。
+不得把 memory 接入 engine generation 路径，也不得实现 LTReflect/provider 新调用、K=5
+检索、prompt 截断、memory mutation、真实 API、向量库、自动修复、缓存/去重、其他
+benchmark、最大化 objective 或 EBBO。完成后不要暂存、commit、push；执行完整 pytest、
+Ruff、mypy、doctor、两个既有 smoke 和 `git diff --check`。P3a 不应新增 LLM calls、
+generated candidates 或 valid evaluations。
 ```
 
 ### 11.5 Prompt E：真实 provider 独立接入
@@ -532,6 +556,7 @@ EBBO。完成后不要暂存、commit、push；执行完整 pytest、Ruff、mypy
 
 ## 13. 当前最推荐的下一条提示词
 
-Prompt A 和 Prompt B 已完成，Stage 3 已形成独立检查点并发布远端分支。当前下一开发
-任务是 Prompt C：先设计 Stage 4 可执行规格和 ADR-0004，不要把 memory 实现与规格
-设计混成一次任务。Stage 4 的提交和发布仍应在该阶段验证通过后单独进行。
+Prompt A、Prompt B 和 Prompt C 均已完成；Stage 3 已形成独立检查点，Stage 4 设计也已由
+`cf1e06b` 冻结并发布。当前下一开发任务是 Prompt D 所定义的 P3a：memory schema、trace
+转换、segment store、commit-last 和 checkpoint 恢复底座。P3a 验收完成后，才进入角色
+摘要、K=5 检索、prompt 截断和 memory mutation 接入；不得把设计发布误写成运行时完成。
