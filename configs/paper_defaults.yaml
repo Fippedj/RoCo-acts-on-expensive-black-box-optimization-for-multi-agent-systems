@@ -1,11 +1,14 @@
 # Paper-aligned settings. Items marked "engineering" are not fully disclosed in RoCo.
 run:
+  # Engineering default: the paper does not disclose its random seed.
   seed: 2025
   objective: minimize
   budgets:
-    # Appendix D reports a maximum of 400 evaluations.
+    # Appendix D is summarized as a maximum of 400 evaluations; its scope
+    # still needs PDF-level verification and is distinct from LLM calls.
     max_valid_evals: 400
-    # Main text reports 400 LLM calls per generation. Set explicitly per study.
+    # Main text reports 400 LLM calls per generation. Keep this separate from
+    # evaluations and set an explicit hard limit in each reproduction study.
     max_llm_calls: null
     max_tokens: null
 
@@ -28,5 +31,7 @@ memory:
   recent_events: 5
 
 evaluation:
+  # Engineering placeholders pending PDF-level verification of both the
+  # numeric values and whether timeout applies per instance/candidate/batch.
   train_timeout_seconds: 60
   cvrp_train_timeout_seconds: 120
