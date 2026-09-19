@@ -1,9 +1,9 @@
-"""Restricted subprocess evaluator for the Stage 2 TSP heuristic contract.
+"""Restricted subprocess evaluator for the shared TSP heuristic contract.
 
 This is intentionally a small development sandbox, not a production security
 boundary. AST allow-listing plus a spawned process and timeout reduce accidental
 damage, but they do not provide container-, VM-, user-, or syscall-level isolation.
-Only trusted local/mock candidate code should be evaluated in Stage 2.
+Only trusted local/mock candidate code should be evaluated.
 """
 
 from __future__ import annotations
@@ -167,17 +167,17 @@ def _validate_source(code: str) -> None:
     if not code.strip():
         raise _CodeValidationError("signature_error", "candidate code is empty")
     if len(code) > _MAX_CODE_CHARACTERS:
-        raise _CodeValidationError("unsafe_code", "candidate code exceeds the Stage 2 size limit")
+        raise _CodeValidationError("unsafe_code", "candidate code exceeds the sandbox size limit")
     tree = ast.parse(code, mode="exec")
     nodes = list(ast.walk(tree))
     if len(nodes) > _MAX_AST_NODES:
-        raise _CodeValidationError("unsafe_code", "candidate AST exceeds the Stage 2 node limit")
+        raise _CodeValidationError("unsafe_code", "candidate AST exceeds the sandbox node limit")
 
     for node in nodes:
         if not isinstance(node, _ALLOWED_NODES):
             raise _CodeValidationError(
                 "unsafe_code",
-                f"AST node {type(node).__name__} is not allowed in the Stage 2 sandbox",
+                f"AST node {type(node).__name__} is not allowed in the development sandbox",
             )
         if isinstance(node, ast.Name) and node.id.startswith("_"):
             raise _CodeValidationError("unsafe_code", "private/dunder names are not allowed")

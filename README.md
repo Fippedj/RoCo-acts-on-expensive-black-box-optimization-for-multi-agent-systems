@@ -2,7 +2,7 @@
 
 Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic Heuristic Design**, followed by a migration toward multi-agent expensive black-box optimization (EBBO).
 
-This repository contains a deterministic Stage 2 engineering baseline. It does **not** claim to be the authors' official implementation and does not yet contain the completed RoCo algorithm.
+This repository contains a deterministic Stage 3 engineering baseline: the Stage 2 EoH path plus an offline four-role RoCo collaboration state machine. It does **not** claim to be the authors' official implementation or a completed paper reproduction; long-term reflection and cross-generation memory remain Stage 4 work.
 
 ## Recommended local setup
 
@@ -17,6 +17,7 @@ python -m pip install -e '.[dev,llm]'
 pytest
 python -m roco_ebbo doctor
 python -m roco_ebbo smoke --config configs/smoke/tsp_mock.yaml
+python -m roco_ebbo smoke --config configs/smoke/tsp_roco_mock.yaml
 ```
 
 Open the folder from WSL with VS Code:
@@ -32,10 +33,13 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | Path | Purpose |
 |---|---|
 | `docs/START_HERE.md` | First-week implementation order and handoff instructions |
+| `docs/AI_PROJECT_STATE_AND_PROMPT_GUIDE.md` | AI-readable repository state, audit findings, roadmap status, and reusable task prompts |
+| `docs/adrs/0003-stage3-roco-collaboration.md` | Stage 3 state machine, failure, trace, and memory-boundary decisions |
 | `docs/RoCo_reproduction_and_EBBO_roadmap.md` | Six-stage reproduction and migration plan |
 | `docs/paper/` | Source-grounded reading notes and paper-gap analysis |
 | `configs/paper_defaults.yaml` | Paper-aligned settings, annotated with non-disclosed items |
-| `configs/smoke/tsp_mock.yaml` | Cheap deterministic local-development configuration |
+| `configs/smoke/tsp_mock.yaml` | Unchanged Stage 2 deterministic EoH regression configuration |
+| `configs/smoke/tsp_roco_mock.yaml` | Deterministic Stage 3 four-role collaboration configuration |
 | `src/roco_ebbo/` | RoCo / EBBO implementation package |
 | `tests/` | Unit, integration, and regression tests |
 | `scripts/` | WSL bootstrap and later experiment entry points |
@@ -55,7 +59,7 @@ See `docs/START_HERE.md` before extending the current stage.
 
 ## Stage 2 deterministic baseline
 
-The current executable path is deliberately small and free of real API cost:
+The retained Stage 2 executable path is deliberately small and free of real API cost:
 
 1. A seeded `MockLLMProvider` creates one structured candidate for each E1/E2/M1/M2 operator.
 2. Candidate source is checked with a restrictive AST/function-signature allow-list.
@@ -65,7 +69,27 @@ The current executable path is deliberately small and free of real API cost:
 
 Run manifests and JSONL event logs are written below the ignored `runs/` directory. The evaluator is only a development sandbox: it does not provide container, operating-system-user, syscall, filesystem, or network isolation and must not run untrusted code.
 
-RoCo roles, collaboration, reflection/memory, real model providers, paper-scale evaluators, and EBBO are intentionally not implemented in Stage 2.
+This legacy path remains selected by `evolution.mode: eoh` (also the default when `mode` is absent). Its Stage 2 candidate sequence, call count, and selection behavior are retained as a regression contract.
+
+## Stage 3 deterministic RoCo collaboration
+
+The independent `tsp_roco_mock.yaml` preset selects `evolution.mode: roco`. `EoHEngine` invokes an optional, generation-local `RoCoCollaborator` after producing the ordinary EoH offspring and before Top-N selection. For each generation it runs one auditable collaboration:
+
+1. Seeded elite-pair sampling and an initial Critic comparison (`round=0`).
+2. Exactly `T` Explorer/Exploiter proposal-and-evaluation rounds; the Critic separately compares each branch with its preceding valid version.
+3. One final Integrator proposal and evaluation.
+4. A unified deterministic Top-N over the valid evaluated population, EoH offspring, and collaboration candidates.
+
+The role contracts are distinct even though the local preset shares one provider: Explorer favors novelty at temperature 1.3, Exploiter favors conservative refinement at 0.8, and Critic/Integrator use 1.0. The paper default is `T=3`; the smoke preset may use a smaller explicit value to keep tests cheap.
+
+With its committed `N=4`, one generation, one E1/E2/M1/M2 child each, and `T=2`, the all-valid RoCo smoke makes 18 Mock calls and 13 valid evaluations: 8 EoH candidate calls plus 10 role calls, of which 5 produce collaboration candidates. This arithmetic is an engineering smoke expectation, not the paper's budget.
+
+The Mock provider is role-aware, seeded, offline, and makes no network or credential access. Every candidate still passes the same AST/signature checks and spawned, timeout-bounded TSP evaluator. Invalid role output, invalid candidates, provider failures, and exhausted budgets become structured trace events; they do not invalidate already completed work.
+
+Each RoCo run writes `collaboration_trace.jsonl` beneath its run directory, one JSON object per generation. It records the sampled pair, ranks and sampling power, requested/completed rounds, ordered role events, inputs and outputs, evaluation results, budget snapshots, failures, and selected candidate IDs. This is an execution trace only: Stage 3 does **not** implement LTReflect, cross-generation retrieval, memory-guided mutation, real model providers, paper-scale evaluators, or EBBO.
+
+See `docs/adrs/0003-stage3-roco-collaboration.md` for the prompt contracts, failure degradation, and trace schema.
+
 ## Original repository purpose
 
 把 RoCo 发展成多智能体昂贵黑盒优化方法

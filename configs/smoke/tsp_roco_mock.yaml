@@ -1,0 +1,33 @@
+# Cheap deterministic Stage 3 control-flow test; not a paper result.
+run:
+  seed: 7
+  objective: minimize
+  budgets:
+    max_valid_evals: 40
+    max_llm_calls: 50
+    max_tokens: 100000
+
+llm:
+  provider: mock
+  # Paper role temperatures; the Mock records but does not sample from them.
+  temperatures:
+    explorer: 1.3
+    exploiter: 0.8
+    critic: 1.0
+    integrator: 1.0
+
+evolution:
+  mode: roco
+  population_size: 4
+  generations: 1
+  # Stage 2 EoH offspring remain part of the unified candidate pool.
+  candidates_per_operator: 1
+  # Smaller than the paper default T=3 to keep this smoke test cheap.
+  collaboration_rounds: 2
+  elite_sampling_power: 3.0
+
+benchmark:
+  name: tsp
+  nodes: 20
+  instances: 1
+  evaluator_timeout_seconds: 5

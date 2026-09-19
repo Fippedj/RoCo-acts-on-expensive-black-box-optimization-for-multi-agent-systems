@@ -1,4 +1,4 @@
-"""Deterministic, serial Stage 2 Evolution of Heuristics baseline."""
+"""Deterministic serial EoH engine with an optional Stage 3 RoCo branch."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from typing import Any
 from roco_ebbo.benchmarks import DistanceMatrix
 from roco_ebbo.core import BudgetExceededError, BudgetLedger, Candidate
 from roco_ebbo.evaluation import TSPCodeEvaluator
+from roco_ebbo.evolution.collaboration import CollaborationTrace, RoCoCollaborator
 from roco_ebbo.evolution.operators import EOH_OPERATORS, EoHOperator
 from roco_ebbo.llm import LLMProvider
 
@@ -73,6 +74,7 @@ class EoHRunResult:
     initial_scores: tuple[float, ...]
     generations_completed: int
     stopped_on_budget: bool
+    collaboration_traces: tuple[CollaborationTrace, ...] = ()
 
 
 class EoHEngine:
@@ -89,6 +91,7 @@ class EoHEngine:
         generations: int,
         candidates_per_operator: int = 1,
         minimize: bool = True,
+        collaborator: RoCoCollaborator | None = None,
     ) -> None:
         if population_size < 2:
             raise ValueError("population_size must be at least 2")
@@ -104,8 +107,10 @@ class EoHEngine:
         self.generations = generations
         self.candidates_per_operator = candidates_per_operator
         self.minimize = minimize
+        self.collaborator = collaborator
         self._started = 0.0
         self._all_candidates: list[Candidate] = []
+        self._collaboration_traces: list[CollaborationTrace] = []
 
     def run(self) -> EoHRunResult:
         self._started = time.perf_counter()
@@ -144,12 +149,26 @@ class EoHEngine:
                     parents = self._parents_for(operator, population)
                     for _ in range(self.candidates_per_operator):
                         offspring.append(self._produce(operator, generation, parents))
+                collaboration_stopped = False
+                if self.collaborator is not None:
+                    outcome = self.collaborator.run(population.candidates, generation)
+                    offspring.extend(outcome.candidates)
+                    self._all_candidates.extend(outcome.candidates)
+                    self._collaboration_traces.append(outcome.trace)
+                    collaboration_stopped = outcome.stopped_on_budget
                 population = Population.select_top_n(
                     [*population.candidates, *offspring],
                     self.population_size,
                     minimize=self.minimize,
                 )
+                if self._collaboration_traces:
+                    self._collaboration_traces[-1].selected_candidate_ids = tuple(
+                        candidate.id for candidate in population.candidates
+                    )
                 generations_completed = generation
+                if collaboration_stopped:
+                    stopped_on_budget = True
+                    break
         except BudgetExceededError:
             stopped_on_budget = True
             if population is None:
@@ -165,6 +184,7 @@ class EoHEngine:
             initial_scores=initial_scores,
             generations_completed=generations_completed,
             stopped_on_budget=stopped_on_budget,
+            collaboration_traces=tuple(self._collaboration_traces),
         )
 
     def _produce(

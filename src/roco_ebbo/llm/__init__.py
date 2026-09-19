@@ -1,5 +1,31 @@
-"""LLM provider contracts; Stage 2 exports only the offline mock."""
+"""Offline LLM provider and versioned RoCo role contracts."""
 
-from roco_ebbo.llm.provider import GeneratedHeuristic, LLMProvider, MockLLMProvider
+from roco_ebbo.llm.prompts import (
+    PROMPT_VERSION,
+    ROLE_PROMPTS,
+    ROLE_TEMPERATURES,
+    RoCoRole,
+    prompt_for,
+)
+from roco_ebbo.llm.provider import (
+    GeneratedHeuristic,
+    LLMProvider,
+    MockLLMProvider,
+    RoleLLMProvider,
+    RoleRequest,
+    RoleResponse,
+)
 
-__all__ = ["GeneratedHeuristic", "LLMProvider", "MockLLMProvider"]
+__all__ = [
+    "PROMPT_VERSION",
+    "ROLE_PROMPTS",
+    "ROLE_TEMPERATURES",
+    "GeneratedHeuristic",
+    "LLMProvider",
+    "MockLLMProvider",
+    "RoCoRole",
+    "RoleLLMProvider",
+    "RoleRequest",
+    "RoleResponse",
+    "prompt_for",
+]

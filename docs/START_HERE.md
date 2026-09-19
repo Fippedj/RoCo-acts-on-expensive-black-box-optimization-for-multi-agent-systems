@@ -29,11 +29,20 @@ The committed `.vscode/` settings enable pytest discovery and Ruff formatting. T
 
 The paper's body says 400 LLM calls per generation, while its appendix says a maximum of 400 evaluations. Treat these as distinct counters and always choose explicit hard limits in an experiment config.
 
-## Current Stage 2 executable scope
+## Current Stage 3 executable scope
 
-The repository now has a deterministic, serial EoH smoke path using only `MockLLMProvider` and one generated TSP-20 instance. The smoke configuration fixes `N=4`, `generations=2`, one candidate per E1/E2/M1/M2 operator per generation, and run-scoped limits of 20 LLM calls and 20 valid evaluations. `collaboration_rounds: 1` is compatibility metadata only; no RoCo roles or collaboration are executed.
+There are two deliberately separate offline smoke paths:
 
-Candidate code must define `heuristic(distance_matrix) -> tour`. It is AST-checked and run in a spawned subprocess with a timeout, but this is not a production security boundary. Use it only with trusted local/mock code.
+- `configs/smoke/tsp_mock.yaml` selects the legacy `evolution.mode: eoh` path. It keeps the Stage 2 contract: deterministic serial E1/E2/M1/M2 generation on one TSP-20 instance, with `collaboration_rounds` accepted but not executed. A missing `mode` also defaults to `eoh` for compatibility.
+- `configs/smoke/tsp_roco_mock.yaml` selects `evolution.mode: roco`. Each generation samples one elite pair, runs the initial Critic, executes exactly the configured `T` Explorer/Exploiter rounds with a separate before/after Critic comparison for each branch, then evaluates one Integrator fusion candidate before unified Top-N selection. The paper default is `T=3`; this smoke preset uses `T=2` to remain cheap.
+
+The role defaults are Explorer 1.3, Exploiter 0.8, Critic 1.0, and Integrator 1.0. All four roles use the seeded role-aware `MockLLMProvider`; neither smoke path calls a network API or reads credentials. The Mock path can replay candidate IDs, scores, role order, and non-time budget counters from the same config and seed.
+
+Candidate code must define `heuristic(distance_matrix) -> tour`. EoH and RoCo candidates use the same AST/signature checks, spawned subprocess evaluator, per-candidate timeout, and run-scoped `BudgetLedger`. These controls are not a production security boundary; use the evaluator only with trusted local/mock code.
+
+The RoCo path writes `collaboration_trace.jsonl` in the run directory, one serializable trace per generation. Check it for the elite pair, ranks, requested/completed rounds, role inputs and outputs, evaluation results, budget deltas, structured failures, and selected IDs. A failed role or invalid candidate is skipped safely; a hard budget stops new work without discarding already valid candidates.
+
+This trace is short-lived run evidence. Stage 3 does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; those remain Stage 4. It also does not enable real providers, expensive black-box optimization, or other benchmarks.
 
 ```bash
 conda activate roco-dev
@@ -42,4 +51,8 @@ ruff check src tests
 ruff format --check src tests
 python -m roco_ebbo doctor
 python -m roco_ebbo smoke --config configs/smoke/tsp_mock.yaml
+python -m roco_ebbo smoke --config configs/smoke/tsp_roco_mock.yaml
+git diff --check
 ```
+
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it: that file describes the eventual full paper pipeline, including the Stage 4 memory states that are intentionally absent here.

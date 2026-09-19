@@ -1,4 +1,4 @@
-"""Deterministic Euclidean TSP instance generation for the Stage 2 smoke test."""
+"""Deterministic Euclidean TSP instance generation for offline smoke tests."""
 
 from __future__ import annotations
 

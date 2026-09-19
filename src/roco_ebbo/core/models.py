@@ -1,4 +1,4 @@
-"""Typed, JSON-serializable models shared by the Stage 2 baseline."""
+"""Typed, JSON-serializable models shared by the EoH and RoCo paths."""
 
 from __future__ import annotations
 
@@ -248,7 +248,7 @@ class BudgetLedger:
 
 @dataclass(frozen=True, slots=True)
 class RunManifest:
-    """Portable record needed to inspect or replay a Stage 2 run."""
+    """Portable record needed to inspect or replay an offline run."""
 
     seed: int
     git_sha: str | None

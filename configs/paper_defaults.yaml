@@ -21,6 +21,8 @@ llm:
     integrator: 1.0
 
 evolution:
+  # Stage 3 collaboration path. This preset is documentary, not a real-provider entry point.
+  mode: roco
   population_size: 10
   collaboration_rounds: 3
   elite_sampling_power: 3.0

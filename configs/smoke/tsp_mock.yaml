@@ -11,11 +11,13 @@ llm:
   provider: mock
 
 evolution:
+  # Explicit Stage 2 path: collaboration_rounds remains compatibility metadata.
+  mode: eoh
   population_size: 4
   generations: 2
   # Stage 2 engineering choice: one candidate from each E1/E2/M1/M2 per generation.
   candidates_per_operator: 1
-  # Compatibility-only in Stage 2; no RoCo collaboration loop is implemented.
+  # Compatibility-only when mode=eoh; this does not invoke any role.
   collaboration_rounds: 1
   elite_sampling_power: 3.0
 
