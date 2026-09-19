@@ -38,9 +38,10 @@ snapshot:
   stage3_parent: 96eec77c467f73a0492740e7dc92e08711cb906e
   current_head: "run: git rev-parse HEAD"
   expected_head_subject: "feat: add deterministic RoCo role collaboration"
-  upstream: null
+  upstream: origin/stage/03-role-collaboration
+  stage3_implementation_commit: 2ce66a4f66c0e446fa8b44a729783074cc13064a
   stage3_committed_locally: true
-  stage3_pushed: false
+  stage3_pushed: true
   expected_worktree_clean: true
   agents_md_present: false
   codegraph_present: false
@@ -61,8 +62,8 @@ snapshot:
     git_diff_check: passed
 ```
 
-重要：Stage 3 已形成当前分支上的本地提交，但没有 upstream、没有推送。精确 HEAD 和
-工作区是否仍干净必须用本文件开头的只读命令复核，不能根据文档猜测。
+重要：Stage 3 已提交并发布到 `origin/stage/03-role-collaboration`。精确 HEAD、远端
+同步状态和工作区是否仍干净必须用本文件开头的只读命令复核，不能根据文档猜测。
 
 ## 2. 分支和 worktree 关系
 
@@ -78,7 +79,7 @@ stage/01-paper-spec / origin/stage/01-paper-spec
 stage/02-eoh-mvp / origin/stage/02-eoh-mvp
   96eec77  feat: add deterministic EoH smoke baseline
       |
-stage/03-role-collaboration (当前本地分支，无 upstream)
+stage/03-role-collaboration / origin/stage/03-role-collaboration
   <local Stage 3 commit>  feat: add deterministic RoCo role collaboration
 ```
 
@@ -161,7 +162,7 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 |---|---|---|---:|
 | Stage 1：论文规格 | 已提交并有远端分支 | algorithm、参数登记、缺口表、ADR-0001 | 100% |
 | Stage 2：确定性 EoH MVP | 已提交并有远端分支 | Mock、预算、Candidate/Population、TSP-20 evaluator、CLI smoke | 100% |
-| Stage 3：四角色协作 | 已提交到本地分支，尚未推送 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 本地交付 100%；远端发布待用户授权 |
+| Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
 | Stage 4：反思与跨代记忆 | 未实现 | 只有 Stage 1 ADR 中的设计约束 | 0% |
 | Stage 5：论文实验对齐 | 未实现 | 只有路线图和 TSP-20 开发 evaluator | 0% |
 | Stage 6：多智能体 EBBO | 未实现 | 只有研究分析和路线图 | 0% |
@@ -341,7 +342,7 @@ status / error_type / error_message
 
 ```text
 P0  Stage 3 最终审计/小范围加固（已完成）
-  -> P1  Stage 3 本地检查点提交（已完成；尚未推送）
+  -> P1  Stage 3 提交并发布远端分支（已完成）
   -> P2  Stage 4 先写可执行规格和 ADR-0004（当前下一开发任务）
   -> P3  Stage 4 实现 memory + LTReflect + memory mutation
   -> P4  Stage 4 确定性恢复/消融验收
@@ -508,6 +509,6 @@ Git 限制：
 
 ## 13. 当前最推荐的下一条提示词
 
-Prompt A 和 Prompt B 已完成，Stage 3 已形成独立本地检查点且尚未推送。当前下一开发
+Prompt A 和 Prompt B 已完成，Stage 3 已形成独立检查点并发布远端分支。当前下一开发
 任务是 Prompt C：先设计 Stage 4 可执行规格和 ADR-0004，不要把 memory 实现与规格
-设计混成一次任务；任何 push 仍需用户单独明确授权。
+设计混成一次任务。Stage 4 的提交和发布仍应在该阶段验证通过后单独进行。
