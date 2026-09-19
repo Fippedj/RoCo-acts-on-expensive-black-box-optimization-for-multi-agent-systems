@@ -28,3 +28,18 @@ The committed `.vscode/` settings enable pytest discovery and Ruff formatting. T
 ## Non-negotiable budget rule
 
 The paper's body says 400 LLM calls per generation, while its appendix says a maximum of 400 evaluations. Treat these as distinct counters and always choose explicit hard limits in an experiment config.
+
+## Current Stage 2 executable scope
+
+The repository now has a deterministic, serial EoH smoke path using only `MockLLMProvider` and one generated TSP-20 instance. The smoke configuration fixes `N=4`, `generations=2`, one candidate per E1/E2/M1/M2 operator per generation, and run-scoped limits of 20 LLM calls and 20 valid evaluations. `collaboration_rounds: 1` is compatibility metadata only; no RoCo roles or collaboration are executed.
+
+Candidate code must define `heuristic(distance_matrix) -> tour`. It is AST-checked and run in a spawned subprocess with a timeout, but this is not a production security boundary. Use it only with trusted local/mock code.
+
+```bash
+conda activate roco-dev
+python -m pytest
+ruff check src tests
+ruff format --check src tests
+python -m roco_ebbo doctor
+python -m roco_ebbo smoke --config configs/smoke/tsp_mock.yaml
+```

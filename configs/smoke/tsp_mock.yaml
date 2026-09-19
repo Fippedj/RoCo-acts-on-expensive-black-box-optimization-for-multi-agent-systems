@@ -13,6 +13,9 @@ llm:
 evolution:
   population_size: 4
   generations: 2
+  # Stage 2 engineering choice: one candidate from each E1/E2/M1/M2 per generation.
+  candidates_per_operator: 1
+  # Compatibility-only in Stage 2; no RoCo collaboration loop is implemented.
   collaboration_rounds: 1
   elite_sampling_power: 3.0
 

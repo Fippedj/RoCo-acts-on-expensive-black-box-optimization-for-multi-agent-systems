@@ -35,4 +35,6 @@
 
 ## 当前阻断项
 
-Stage 1 文档本身无阻断项。进入 Stage 2 前必须至少决定：预算 limit 的作用域和终止语义、候选/evaluation 的计数定义、随机流拆分、Top-N tie-break，以及 TSP evaluator 的超时作用域。进入 Stage 3 前还必须对原 PDF 逐式核验 G-002 至 G-004，并处理 Critic prompt 的 better/worse 歧义。
+Stage 1 文档本身无阻断项。Stage 2 MVP 已通过 ADR-0002 固化：预算按单次 run 作用、候选/evaluation 的计数定义、派生随机流、Top-N tie-break、每算子候选数，以及 smoke evaluator 的单候选超时作用域。论文训练超时仍未被这些工程值替代，留待复现实验协议核验。
+
+进入 Stage 3 前仍须对原 PDF 逐式核验 G-002 至 G-004，并处理 Critic prompt 的 better/worse 歧义；这些问题未进入 Stage 2 代码路径。

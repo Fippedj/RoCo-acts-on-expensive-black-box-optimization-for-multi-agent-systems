@@ -2,7 +2,7 @@
 
 Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic Heuristic Design**, followed by a migration toward multi-agent expensive black-box optimization (EBBO).
 
-This repository starts as a reproducible engineering scaffold. It does **not** claim to be the authors' official implementation and does not yet contain the completed RoCo algorithm.
+This repository contains a deterministic Stage 2 engineering baseline. It does **not** claim to be the authors' official implementation and does not yet contain the completed RoCo algorithm.
 
 ## Recommended local setup
 
@@ -16,6 +16,7 @@ conda activate roco-dev
 python -m pip install -e '.[dev,llm]'
 pytest
 python -m roco_ebbo doctor
+python -m roco_ebbo smoke --config configs/smoke/tsp_mock.yaml
 ```
 
 Open the folder from WSL with VS Code:
@@ -50,7 +51,21 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 
 The paper specifies GPT-4o-mini, population size `N=10`, collaboration rounds `T=3`, and role temperatures. It does not disclose OS, Python/dependency versions, hardware, long-term-memory retrieval, or full retry policies. The primary environment here is Linux/WSL2 + Conda + Python 3.11 as an engineering decision, not a claim about the authors' machine.
 
-See `docs/START_HERE.md` before writing Stage 1 code.
+See `docs/START_HERE.md` before extending the current stage.
+
+## Stage 2 deterministic baseline
+
+The current executable path is deliberately small and free of real API cost:
+
+1. A seeded `MockLLMProvider` creates one structured candidate for each E1/E2/M1/M2 operator.
+2. Candidate source is checked with a restrictive AST/function-signature allow-list.
+3. `heuristic(distance_matrix) -> tour` executes only in a spawned subprocess with a per-candidate timeout.
+4. Valid TSP-20 tours receive a closed-tour score; parents and children are merged and selected by deterministic Top-N.
+5. The smoke preset initializes four candidates and runs two generations, for 12 mock calls and at most 12 valid evaluations.
+
+Run manifests and JSONL event logs are written below the ignored `runs/` directory. The evaluator is only a development sandbox: it does not provide container, operating-system-user, syscall, filesystem, or network isolation and must not run untrusted code.
+
+RoCo roles, collaboration, reflection/memory, real model providers, paper-scale evaluators, and EBBO are intentionally not implemented in Stage 2.
 ## Original repository purpose
 
 把 RoCo 发展成多智能体昂贵黑盒优化方法

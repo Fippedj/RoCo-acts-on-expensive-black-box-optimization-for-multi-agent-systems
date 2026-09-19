@@ -9,6 +9,7 @@ dependencies:
   - pandas
   - scikit-learn
   - networkx
+  - pyyaml>=6
   - pydantic>=2.7,<3
   - hydra-core
   - jinja2
