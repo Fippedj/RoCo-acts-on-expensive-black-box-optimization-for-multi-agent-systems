@@ -42,7 +42,7 @@ Candidate code must define `heuristic(distance_matrix) -> tour`. EoH and RoCo ca
 
 The RoCo path writes `collaboration_trace.jsonl` in the run directory, one serializable trace per generation. Check it for the elite pair, ranks, requested/completed rounds, role inputs and outputs, evaluation results, budget deltas, structured failures, and selected IDs. A failed role or invalid candidate is skipped safely; a hard budget stops new work without discarding already valid candidates.
 
-This trace is short-lived run evidence. Stage 3 does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; those remain Stage 4. It also does not enable real providers, expensive black-box optimization, or other benchmarks.
+This trace is short-lived run evidence. Stage 3 does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; those remain Stage 4 runtime work. Their design is now frozen in `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; do not treat those documents as an implemented feature. Real providers, expensive black-box optimization, and other benchmarks also remain out of scope.
 
 ```bash
 conda activate roco-dev
@@ -55,4 +55,4 @@ python -m roco_ebbo smoke --config configs/smoke/tsp_roco_mock.yaml
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it: that file describes the eventual full paper pipeline, including the Stage 4 memory states that are intentionally absent here.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Before Stage 4 code, read `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; they define the trace-to-memory boundary, retrieval, budgets, commit protocol, and recovery invariants for the still-unimplemented runtime.

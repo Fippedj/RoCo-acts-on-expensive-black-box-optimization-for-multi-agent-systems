@@ -163,7 +163,7 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 | Stage 1：论文规格 | 已提交并有远端分支 | algorithm、参数登记、缺口表、ADR-0001 | 100% |
 | Stage 2：确定性 EoH MVP | 已提交并有远端分支 | Mock、预算、Candidate/Population、TSP-20 evaluator、CLI smoke | 100% |
 | Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
-| Stage 4：反思与跨代记忆 | 未实现 | 只有 Stage 1 ADR 中的设计约束 | 0% |
+| Stage 4：反思与跨代记忆 | 设计已冻结、运行时未实现 | ADR-0004、memory 可执行规格、gap/config 契约 | 设计 100%，实现 0% |
 | Stage 5：论文实验对齐 | 未实现 | 只有路线图和 TSP-20 开发 evaluator | 0% |
 | Stage 6：多智能体 EBBO | 未实现 | 只有研究分析和路线图 | 0% |
 
@@ -312,6 +312,7 @@ status / error_type / error_message
 
 ### Stage 4
 
+- 已完成设计：`roco-memory-event-v1`、角色摘要、minimize `delta_g`、K=5 的 3/2 成败检索、每精英 E/X/I 三次 mutation、代级 segment/commit/checkpoint 与恢复不变量；
 - LTReflect；
 - `RoleMemorySummary` 或长期反思摘要；
 - 跨代 JSONL memory event store；
@@ -343,8 +344,8 @@ status / error_type / error_message
 ```text
 P0  Stage 3 最终审计/小范围加固（已完成）
   -> P1  Stage 3 提交并发布远端分支（已完成）
-  -> P2  Stage 4 先写可执行规格和 ADR-0004（当前下一开发任务）
-  -> P3  Stage 4 实现 memory + LTReflect + memory mutation
+  -> P2  Stage 4 先写可执行规格和 ADR-0004（已完成，待审计提交）
+  -> P3  Stage 4 实现 memory + LTReflect + memory mutation（当前下一开发任务）
   -> P4  Stage 4 确定性恢复/消融验收
   -> P5  真实 provider 的独立小预算接入
   -> P6  Stage 5 TSP 论文实验对齐
@@ -453,11 +454,33 @@ Git 限制：
 ### 11.4 Prompt D：Stage 4 确定性实现
 
 ```text
-先阅读 `docs/AI_PROJECT_STATE_AND_PROMPT_GUIDE.md`、已接受的 ADR-0004 和 memory spec。只按已经冻结的 Stage 4 schema 实现 LTReflect、跨代记忆和 memory-guided mutation。
+你正在 `/home/fj/RoCo-BO/RoCo-ebbo-stage4` 的 `stage/04-reflection-memory` 分支工作。
 
-要求：复用 Candidate、BudgetLedger、provider、evaluator 和 Stage 3 trace；append-only JSONL；确定性 K=5 检索；摘要和原始事件分离；每个配置精英从 Explorer/Exploiter/Integrator 三种视角各生成一个候选；所有候选仍走 AST/子进程/timeout/预算；中断恢复后与不中断运行在非时间状态上相同；无效记忆输出和预算耗尽安全降级。
+先完整阅读 `docs/AI_PROJECT_STATE_AND_PROMPT_GUIDE.md`、ADR-0001/0003/0004、
+`docs/paper_spec/memory.md`、gap registry，以及 Stage 3 的 engine/provider/evaluator/trace、
+预算、配置和测试。若存在 AGENTS.md 或 `.codegraph/`，先按其规则执行。核对分支、HEAD
+和未提交改动，不得覆盖已有工作；先输出简短实现方案。
 
-保持两个既有 smoke 完全回归，新增独立 memory Mock smoke。不得接入真实 API、向量库、其他 benchmark 或 EBBO。补齐单元、集成、恢复和消融测试，更新 ADR/README/START_HERE/gap registry。完成后不要 commit/push，执行完整验证并报告预算推演。
+只按已冻结的 Stage 4 schema 实现 LTReflect、跨代记忆和 memory-guided mutation。建议
+分两次可审计实现：先完成 schema/纯转换器/generation segment store/commit/checkpoint/
+恢复及单元测试，再把角色摘要、K=5 检索、prompt 截断和 mutation 接入 engine。
+
+要求：复用 Candidate、BudgetLedger、provider、evaluator 和 Stage 3 trace；实现
+`roco-memory-event-v1` 和摘要 schema；最小化 `delta_g=before-after`；每代不可变 JSONL
+segment 与 commit-last 哈希校验；显式 JSON-safe 的随机/Mock provider 游标；确定性 K=5
+（改善 3、其他/失败 2，不足补位）；摘要和原始事件分离；每个配置精英从 Explorer、
+Exploiter、Integrator 三种视角各生成一个候选；按优先级确定性截断并记录删除审计；
+所有候选仍走 AST/子进程/timeout/预算；中断恢复后与不中断运行在非时间状态和工件哈希
+上一致；无效记忆、摘要、provider 输出和预算耗尽安全降级。
+
+保持 Stage 2 smoke 12 calls/12 valid evaluations 和 Stage 3 T=2 smoke 18 calls/13 valid
+evaluations 完全回归；新增独立两代 memory Mock smoke。至少测试 schema round-trip、非有限
+数拒绝、稳定 ID、trace 映射、失败事件、3/2 检索/补位、摘要失败回退、每精英三角色、
+timeout/provider/各预算中断、半写/坏哈希/缺 commit、恢复等价和 memory/no-memory 消融。
+
+不得实现真实 API、向量库、自动修复、缓存/去重、其他 benchmark、最大化 objective 或
+EBBO。完成后不要暂存、commit、push；执行完整 pytest、Ruff、mypy、doctor、三个 smoke
+和 `git diff --check`，报告精确预算推演、变更文件、恢复证据及剩余风险。
 ```
 
 ### 11.5 Prompt E：真实 provider 独立接入

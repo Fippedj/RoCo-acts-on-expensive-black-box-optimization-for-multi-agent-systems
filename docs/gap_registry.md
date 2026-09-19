@@ -14,12 +14,12 @@
 | G-002 | 单代主顺序 | 论文明确 | p.3 `S005`；p.10 `S008` | Stage 3 实现精英对→初始 Critic→`T` 轮 E/X+Critic→最终 Integrator→统一 Top-N；`G10/G11` 明确留给 Stage 4 | 附录对轮内/最终 Integrator 的措辞仍需原 PDF 复核，不影响已版本化的 Stage 3 口径 | ADR-0003；Stage 4 接续 |
 | G-003 | 初始 Critic 与 `T` 轮边界 | 合理推断 | p.10 `S008` | 初始 Critic 记为 round 0 且不计入 `T`；每轮 E/X 后 Critic；最后 Integrator 也不增加轮次 | 若原伪代码存在轮内 Integrator，论文对齐调用预算会变化；不得静默改现有语义 | ADR-0003；已用调用顺序测试固化 |
 | G-004 | 精英采样邻居边界 | 合理推断 | p.10 `S008`；分析稿 §5.3 | Stage 3 使用排名权重 `1/(i+1)^k`，seed 驱动并在 trace 中记录 ranks、`k` 与结果；不足两人由配置前置拒绝 | 邻居偏移的逐式论文对齐仍待原 PDF 复核 | Stage 3 已落地；论文数值复现前复核 |
-| G-005 | LTReflect 写入内容 | 论文明确 + 自行设计 | p.4 `S007` 明确前后值与变化；p.10–16 `S011` 指出结构缺失 | JSONL 事件至少含角色、候选引用、反馈、前/后分数、方向标准化 `delta_g`、成功标志、代/轮次 | schema 版本、崩溃恢复和脱敏需测试 | Stage 4 / memory 实现前 |
-| G-006 | LTReflect 存储后端 | 必须自行设计 | p.10–16 `S011` | JSONL append-only；摘要另存版本/哈希，不引入向量库 | 并发写、原子提交、文件增长 | ADR-0001；Stage 4 |
-| G-007 | LTReflect 检索 | 必须自行设计 | p.10–16 `S011` | 最近 `K=5` 条符合当前角色/任务作用域的有效事件；确定性排序 | “有效”的精确定义、成功/失败平衡尚需协议 | ADR-0001；Stage 4 |
-| G-008 | memory-guided mutation prompt | 必须自行设计 | p.4 `S007`、p.10 `S008` 只给机制；`S011` 指出 prompt/检索不完整 | 输入契约：角色视角、当前精英、累计摘要、最近 K 个带数值证据事件、输出 schema；每精英三角色各一次 | 完整模板、注入顺序、反提示注入防护待 Stage 4 版本化 | Stage 4 / prompt 冻结前 |
+| G-005 | LTReflect 写入内容 | 论文明确 + 自行设计 | p.4 `S007` 明确前后值与变化；p.10–16 `S011` 指出结构缺失 | ADR-0004 冻结 `roco-memory-event-v1`；minimize 的 `delta_g=before-after`，失败保留 null 结果，候选代码不复制入 memory | 实现严格 schema、trace 转换器和脱敏测试 | Stage 4 实现 |
+| G-006 | LTReflect 存储后端 | 必须自行设计 | p.10–16 `S011` | 每代不可变 JSONL segment + 摘要/checkpoint；commit-last marker 以长度和 SHA-256 验证 | 实现 fsync/原子 rename、孤儿检测及恢复测试 | ADR-0004；Stage 4 实现 |
+| G-007 | LTReflect 检索 | 必须自行设计 | p.10–16 `S011` | 前代已提交、同 benchmark/objective/role 的 `K=5`；默认最近改善 3 条、其他/失败 2 条，不足跨类补位，最终旧到新注入 | 3/2 是工程值；需做作用域、补位和损坏代测试 | ADR-0004；Stage 4 实现 |
+| G-008 | memory-guided mutation prompt | 必须自行设计 | p.4 `S007`、p.10 `S008` 只给机制；`S011` 指出 prompt/检索不完整 | 每个配置化精英按 E/X/I 各一次；输入为任务契约、精英、角色摘要、K 条数值事件，输出单候选严格 JSON；外部文本作为数据编码 | 默认 `elite_count=1` 是工程值；实现角色 Mock、注入和失败测试 | ADR-0004；Stage 4 实现 |
 | G-009 | token 预算 | 必须自行设计 | p.10–16 `S011` | 分别记录输入/输出/总 token；Stage 2/3 使用 run-scoped 总硬上限，角色事件记录预算前后，当前不宣称论文值或每角色配额 | tokenizer/model 差异；真实 provider 若需每角色上限须新增配置 | Stage 2/3 已分账；真实 provider 前扩展 |
-| G-010 | 上下文截断 | 必须自行设计 | p.10–16 `S011` | Stage 3 Mock 只传当前代结构化状态，不实现真实模型 token 截断；原优先级建议保留 | 精确 token 配额、删除审计及摘要可信度待真实 provider/Stage 4 测试 | Stage 4 或真实 provider 接入前 |
+| G-010 | 上下文截断 | 必须自行设计 | p.10–16 `S011` | ADR-0004 固定保留优先级和删除审计；Mock 用确定性字符/字段预算，真实 provider 必须另加 tokenizer 契约 | 字符预算不等于模型 token；实现边界和稳定截断测试 | Stage 4 Mock 实现；真实 provider 前再版本化 |
 | G-011 | `G`（总代数） | 必须自行设计 | 当前材料无固定值；p.10 `S008` 仅有代循环 | 不写死，以配置的硬预算停止；Stage 2 smoke 的 `G=2` 与 Stage 3 smoke 的 `G=1` 都只是测试值 | 预算作用域不清可能影响论文曲线对齐 | Stage 2/3 run config |
 | G-012 | 400 calls 与 400 evaluations | 论文陈述冲突/口径不完整 | p.5 `S009`：400 calls/generation；Appendix D 摘要：maximum 400 evaluations；p.10–16 `S011` | 两个独立 counter/limit，连同 tokens、candidates、cost、wall time 分账；实验指定首个触发即停止 | 必须复核 PDF 与可能的作者代码/回复 | ADR-0001；Stage 2 |
 | G-013 | generated candidate 定义 | 必须自行设计 | 论文未定义预算术语 | 成功解析为一个新方案即计数；不要求代码有效或已评估 | 多方案单响应如何拆分须由输出 schema 禁止或定义 | Stage 2 / core models 前 |
@@ -34,6 +34,10 @@
 | G-022 | Mock 与真实 LLM 的优先级 | 必须自行设计 | 论文使用 GPT-4o-mini（`S009`）；工程复现需要确定性路径 | CI、开发和验收使用角色感知 Mock；`eoh`/`roco` 均离线，真实 provider 不在 Stage 3 范围 | Mock 只验证控制流、失败和预算，不验证论文性能 | ADR-0001/0003；Stage 3 |
 | G-023 | 单代协作 trace 与长期记忆的边界 | 必须自行设计 | 论文描述反思/记忆但未给可执行日志 schema；p.4 `S007`、p.10–16 `S011` | `roco-collaboration-trace-v1` 每代记录精英对、角色事件、候选/反馈、评估、预算前后与选择结果；只作 run audit，不供跨代检索 | JSONL 外形容易被误认为 LTReflect；报告必须注明 scope，Stage 4 另定 memory schema | ADR-0003；Stage 3 |
 | G-024 | Stage 2/3 配置兼容分派 | 必须自行设计 | 论文未涉及仓库迁移兼容 | `evolution.mode: eoh|roco`；字段缺省按 `eoh`，旧 smoke 行为作为回归契约，RoCo 使用独立配置 | 后续新增模式不得改变缺省含义或旧候选顺序 | ADR-0003；Stage 3 |
+| G-025 | trace 到长期事件的边界 | 必须自行设计 | 论文没有日志 schema；Stage 3 trace 明确 generation-local | 纯转换器从 proposal/compare/integrate 派生事件；初始 Critic 不入长期 memory；当代事件提交前不可被历史检索 | 来源关联错误会污染记忆；需 golden mapping 测试 | ADR-0004；Stage 4 实现 |
+| G-026 | 角色摘要 multiplicity | 必须自行设计 | 论文说明 LTReflect 机制但未披露每代调用数 | 每代 E/X/I 各一次；Critic 反馈作为证据但不建独立长期摘要；失败沿用旧/空摘要 | 每代额外 3 个 LLM calls；需预算和回退测试 | ADR-0004；Stage 4 实现 |
+| G-027 | 代级恢复 | 必须自行设计 | 论文未披露 crash consistency | population、账本、随机/provider 游标进入 JSON checkpoint；只从连续有效 commit 恢复，半写代忽略 | 显式 provider snapshot 和跨中断重放是实现难点 | ADR-0004；Stage 4 实现 |
+| G-028 | memory 候选去重/cache | 必须自行设计 | 论文没有预算口径；Stage 2/3 当前不去重 | Stage 4 V1 仍不去重、不缓存；相同代码照常生成和评估，可仅记录代码哈希 | 成本较高但保持账本连续；未来改变需新 ADR/cache-hit counter | ADR-0004；后续阶段 |
 
 ## 当前阻断项
 
@@ -42,6 +46,6 @@ ADR-0003 固定四角色状态机、失败降级、配置分派和单代 trace�
 G-020 中未能从论文唯一确定的部分已作为显式工程口径版本化，而不是冒充作者原值。
 
 进入论文数值复现或真实 provider 前，仍须回到原 PDF 逐式核验精英邻居采样、
-Integrator 位置、Critic 原 prompt 和训练 timeout。进入 Stage 4 前必须另行实现并测试
-LTReflect、跨代记忆存储/检索及 memory-guided mutation；Stage 3 的运行 trace 不能
-用来宣称这些缺口已经关闭。
+Integrator 位置、Critic 原 prompt 和训练 timeout。Stage 4 的 schema、检索、摘要、
+mutation 与恢复协议已经由 ADR-0004 设计冻结，但运行时代码和测试尚未实现；Stage 3
+的运行 trace 不能用来宣称这些能力已经完成。

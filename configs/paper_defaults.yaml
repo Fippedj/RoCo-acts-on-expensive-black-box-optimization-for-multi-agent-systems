@@ -28,9 +28,22 @@ evolution:
   elite_sampling_power: 3.0
 
 memory:
-  # Engineering V1: the paper does not disclose memory storage/retrieval.
-  backend: jsonl
+  # Stage 4 engineering defaults: the paper does not disclose the storage,
+  # retrieval balance, mutation multiplicity, or recovery protocol. These
+  # fields document ADR-0004 and are not a real-provider entry point yet.
+  backend: generation_jsonl_segments
   recent_events: 5
+  success_slots: 3
+  failure_slots: 2
+  elite_count: 1
+  summary_roles:
+    - explorer
+    - exploiter
+    - integrator
+  checkpoint_every_generation: true
+  # Mock uses deterministic character accounting. A real provider must add a
+  # versioned tokenizer contract before treating this as a token limit.
+  max_context_characters: 16000
 
 evaluation:
   # Engineering placeholders pending PDF-level verification of both the
