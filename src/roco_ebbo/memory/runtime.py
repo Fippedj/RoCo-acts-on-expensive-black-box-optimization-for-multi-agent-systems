@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Literal, cast
 
@@ -353,10 +354,10 @@ class MemoryRuntime:
                 )
         checkpoint = MemoryCheckpoint.create(
             runtime_trace.generation,
-            population,
-            self.ledger,
-            random_streams={"collaboration": self.collaborator},
-            provider_snapshots={"mock": self.provider},
+            _ReplaySnapshot(_replay_population_snapshot(population)),
+            _ReplaySnapshot(_replay_budget_snapshot(self.ledger)),
+            random_streams={"collaboration": self.collaborator.to_snapshot()},
+            provider_snapshots={"mock": _provider_snapshot(self.provider)},
         )
         result = self.store.commit_generation(
             runtime_trace.generation,
@@ -1001,3 +1002,51 @@ def _budget_counters(ledger: BudgetLedger) -> dict[str, int | float]:
 
 def _finite_score(value: object) -> bool:
     return type(value) in (int, float) and math.isfinite(cast(float, value))
+
+
+@dataclass(frozen=True, slots=True)
+class _ReplaySnapshot:
+    value: dict[str, Any]
+
+    def to_snapshot(self) -> dict[str, Any]:
+        return self.value
+
+
+def _replay_population_snapshot(population: Any) -> dict[str, Any]:
+    method = getattr(population, "to_snapshot", None)
+    if not callable(method):
+        raise ValueError("memory checkpoint population lacks to_snapshot()")
+    value = deepcopy(method())
+    if not isinstance(value, dict):
+        raise ValueError("memory checkpoint population snapshot must be an object")
+    candidates = value.get("candidates")
+    if not isinstance(candidates, list):
+        raise ValueError("memory checkpoint population candidates must be a list")
+    # Evaluator duration is observational and is explicitly outside deterministic
+    # replay equality. It is retained in run traces but normalized at the resume boundary.
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        metadata = candidate.get("metadata")
+        if not isinstance(metadata, dict):
+            continue
+        evaluation = metadata.get("evaluation")
+        if isinstance(evaluation, dict) and "runtime_seconds" in evaluation:
+            evaluation["runtime_seconds"] = 0.0
+    return value
+
+
+def _replay_budget_snapshot(ledger: BudgetLedger) -> dict[str, Any]:
+    value = ledger.to_snapshot()
+    value["wall_time"] = 0.0
+    return value
+
+
+def _provider_snapshot(provider: MemoryLLMProvider) -> dict[str, Any]:
+    method = getattr(provider, "to_snapshot", None)
+    if not callable(method):
+        raise ValueError("memory provider lacks to_snapshot()")
+    value = method()
+    if not isinstance(value, dict):
+        raise ValueError("memory provider snapshot must be an object")
+    return value

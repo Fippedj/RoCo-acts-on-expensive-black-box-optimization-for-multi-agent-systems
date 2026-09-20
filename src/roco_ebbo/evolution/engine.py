@@ -100,6 +100,22 @@ class EoHRunResult:
     stopped_on_budget: bool
     collaboration_traces: tuple[CollaborationTrace, ...] = ()
     memory_traces: tuple[MemoryGenerationTrace, ...] = ()
+    resumed_from_generation: int | None = None
+    interrupted_after_generation: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class EngineResumeState:
+    """Explicit state for continuing after a committed memory generation."""
+
+    population: Population
+    next_generation: int
+
+    def __post_init__(self) -> None:
+        if type(self.next_generation) is not int or self.next_generation < 1:
+            raise ValueError("resume next_generation must be a positive integer")
+        if len(self.population.candidates) != self.population.size:
+            raise ValueError("resume population must contain its configured number of candidates")
 
 
 class EoHEngine:
@@ -142,38 +158,86 @@ class EoHEngine:
         self._collaboration_traces: list[CollaborationTrace] = []
         self._memory_traces: list[MemoryGenerationTrace] = []
 
-    def run(self) -> EoHRunResult:
+    def run(self, *, interrupt_after_committed_generation: int | None = None) -> EoHRunResult:
+        """Start a new run, optionally stopping after a durable memory commit."""
+
+        return self._run(
+            resume_state=None,
+            interrupt_after_committed_generation=interrupt_after_committed_generation,
+        )
+
+    def resume(
+        self,
+        state: EngineResumeState,
+        *,
+        interrupt_after_committed_generation: int | None = None,
+    ) -> EoHRunResult:
+        """Continue from an explicitly restored checkpoint without redoing prior work."""
+
+        if self.memory_runtime is None:
+            raise ValueError("engine resume is available only for opt-in memory runs")
+        if state.next_generation > self.generations + 1:
+            raise ValueError("resume generation is beyond the configured run length")
+        return self._run(
+            resume_state=state,
+            interrupt_after_committed_generation=interrupt_after_committed_generation,
+        )
+
+    def _run(
+        self,
+        *,
+        resume_state: EngineResumeState | None,
+        interrupt_after_committed_generation: int | None,
+    ) -> EoHRunResult:
+        if interrupt_after_committed_generation is not None:
+            if self.memory_runtime is None:
+                raise ValueError("committed-generation interruption requires a memory runtime")
+            if (
+                type(interrupt_after_committed_generation) is not int
+                or interrupt_after_committed_generation < 1
+                or interrupt_after_committed_generation > self.generations
+            ):
+                raise ValueError("interrupt generation must be within the configured run")
         self._started = time.perf_counter()
         stopped_on_budget = False
         generations_completed = 0
+        interrupted_after_generation: int | None = None
         population: Population | None = None
         initial_scores: tuple[float, ...] = ()
         try:
-            initial_candidates: list[Candidate] = []
-            initialization_attempts = 0
-            initialization_attempt_limit = self.population_size * len(EOH_OPERATORS)
-            while len(initial_candidates) < self.population_size:
-                if initialization_attempts >= initialization_attempt_limit:
-                    raise RuntimeError(
-                        "could not initialize a full valid population within the attempt limit"
-                    )
-                operator = EOH_OPERATORS[initialization_attempts % len(EOH_OPERATORS)]
-                candidate = self._produce(operator, generation=0, parents=())
-                initialization_attempts += 1
-                if candidate.score is not None:
-                    initial_candidates.append(candidate)
-            population = Population.select_top_n(
-                initial_candidates,
-                self.population_size,
-                minimize=self.minimize,
-            )
+            if resume_state is None:
+                initial_candidates: list[Candidate] = []
+                initialization_attempts = 0
+                initialization_attempt_limit = self.population_size * len(EOH_OPERATORS)
+                while len(initial_candidates) < self.population_size:
+                    if initialization_attempts >= initialization_attempt_limit:
+                        raise RuntimeError(
+                            "could not initialize a full valid population within the attempt limit"
+                        )
+                    operator = EOH_OPERATORS[initialization_attempts % len(EOH_OPERATORS)]
+                    candidate = self._produce(operator, generation=0, parents=())
+                    initialization_attempts += 1
+                    if candidate.score is not None:
+                        initial_candidates.append(candidate)
+                population = Population.select_top_n(
+                    initial_candidates,
+                    self.population_size,
+                    minimize=self.minimize,
+                )
+                first_generation = 1
+            else:
+                population = resume_state.population
+                if population.size != self.population_size or population.minimize != self.minimize:
+                    raise ValueError("resume population is incompatible with the engine config")
+                first_generation = resume_state.next_generation
+                generations_completed = first_generation - 1
             initial_scores = tuple(
                 float(candidate.score)
                 for candidate in population.candidates
                 if candidate.score is not None
             )
 
-            for generation in range(1, self.generations + 1):
+            for generation in range(first_generation, self.generations + 1):
                 offspring: list[Candidate] = []
                 for operator in EOH_OPERATORS:
                     parents = self._parents_for(operator, population)
@@ -215,6 +279,9 @@ class EoHEngine:
                         population,
                     )
                 generations_completed = generation
+                if interrupt_after_committed_generation == generation:
+                    interrupted_after_generation = generation
+                    break
                 if collaboration_stopped or memory_stopped:
                     stopped_on_budget = True
                     break
@@ -235,6 +302,10 @@ class EoHEngine:
             stopped_on_budget=stopped_on_budget,
             collaboration_traces=tuple(self._collaboration_traces),
             memory_traces=tuple(self._memory_traces),
+            resumed_from_generation=(
+                None if resume_state is None else resume_state.next_generation - 1
+            ),
+            interrupted_after_generation=interrupted_after_generation,
         )
 
     def _produce(

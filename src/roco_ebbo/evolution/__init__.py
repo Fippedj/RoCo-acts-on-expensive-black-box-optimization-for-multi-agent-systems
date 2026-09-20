@@ -6,7 +6,7 @@ from roco_ebbo.evolution.collaboration import (
     CollaborationTrace,
     RoCoCollaborator,
 )
-from roco_ebbo.evolution.engine import EoHEngine, EoHRunResult, Population
+from roco_ebbo.evolution.engine import EngineResumeState, EoHEngine, EoHRunResult, Population
 from roco_ebbo.evolution.operators import EOH_OPERATORS, EoHOperator
 
 __all__ = [
@@ -15,6 +15,7 @@ __all__ = [
     "CollaborationOutcome",
     "CollaborationTrace",
     "EoHEngine",
+    "EngineResumeState",
     "EoHOperator",
     "EoHRunResult",
     "Population",
