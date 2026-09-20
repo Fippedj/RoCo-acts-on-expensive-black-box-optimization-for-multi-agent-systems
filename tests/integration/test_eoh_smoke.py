@@ -3,6 +3,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
+import pytest
+import yaml  # type: ignore[import-untyped]
+
 from roco_ebbo.benchmarks import generate_symmetric_distance_matrix
 from roco_ebbo.core import BudgetLedger, Candidate
 from roco_ebbo.evaluation import TSPCodeEvaluator
@@ -78,3 +81,30 @@ def test_invalid_offspring_does_not_stop_the_population_run() -> None:
         if not candidate.metadata["evaluation"]["valid"]
     ]
     assert len(invalid) == 1
+
+
+def test_missing_provider_defaults_to_the_unchanged_offline_mock_path(tmp_path: Path) -> None:
+    repository_root = Path(__file__).resolve().parents[2]
+    source = repository_root / "configs" / "smoke" / "tsp_mock.yaml"
+    raw = yaml.safe_load(source.read_text(encoding="utf-8"))
+    del raw["llm"]["provider"]
+    config = tmp_path / "default-provider.yaml"
+    config.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
+
+    settings = load_smoke_settings(config)
+    smoke_run = run_smoke(settings)
+
+    assert settings.provider == "mock"
+    assert smoke_run.ledger.llm_calls == smoke_run.ledger.valid_evals == 12
+
+
+def test_smoke_cli_configuration_rejects_real_provider_selection(tmp_path: Path) -> None:
+    repository_root = Path(__file__).resolve().parents[2]
+    source = repository_root / "configs" / "smoke" / "tsp_mock.yaml"
+    raw = yaml.safe_load(source.read_text(encoding="utf-8"))
+    raw["llm"]["provider"] = "openai-compatible"
+    config = tmp_path / "network-provider.yaml"
+    config.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="only the offline mock provider"):
+        load_smoke_settings(config)

@@ -1,0 +1,42 @@
+# Documentation-only construction values for the Stage 5 offline adapter.
+# This file is not a network smoke configuration and contains no endpoint,
+# credential, provider response, or real vendor price. The caller must inject
+# both a fake transport and a fake, model-specific token counter in code.
+
+adapter:
+  provider_name: openai-compatible
+  model_name: fake-openai-compatible-model-v1
+  timeout_seconds: 5.0
+  max_retries: 1
+  max_output_tokens: 256
+  context_window_tokens: 4096
+  max_response_bytes: 1048576
+  eoh_temperature: 1.0
+
+contracts:
+  # Fixed implementation versions, not caller-selected compatibility aliases.
+  request: roco-openai-compatible-request-v1
+  call_audit: roco-provider-call-audit-v1
+  context_audit: roco-provider-context-audit-v1
+
+transport:
+  implementation: injected-fake-only
+  implicit_retries: 0
+
+token_counter:
+  implementation: injected-fake-only
+  contract_version: fake-token-counter-v1
+  model_name: fake-openai-compatible-model-v1
+
+pricing:
+  # Synthetic test units, deliberately not a real provider price table.
+  version: synthetic-offline-pricing-v1
+  currency: TEST
+  input_per_million: "1.000000"
+  output_per_million: "2.000000"
+
+scope:
+  eoh: true
+  roco_roles: true
+  stage4_memory: false
+  network: false

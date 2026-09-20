@@ -2,10 +2,11 @@
 
 Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic Heuristic Design**, followed by a migration toward multi-agent expensive black-box optimization (EBBO).
 
-This repository contains deterministic Stage 2/3 baselines and the Stage 4 V1 opt-in offline memory
-path. P4 recovery and ablation were verified and formed local implementation commit `c7a1ae4`; use
-live Git status to determine publication. It does **not** claim to be the authors' official
-implementation or a completed paper reproduction; real-provider and paper experiments remain P5+.
+This repository contains deterministic Stage 2/3 baselines, the published Stage 4 V1 opt-in offline
+memory path, and a Stage 5 OpenAI-compatible adapter verified only through an injected fake
+transport. It does **not** claim to be the authors' official implementation or a completed paper
+reproduction. No HTTP transport, real-provider interoperability run, or paper experiment has been
+authorized or performed.
 
 ## Recommended local setup
 
@@ -40,12 +41,15 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `docs/AI_PROJECT_STATE_AND_PROMPT_GUIDE.md` | AI-readable repository state, audit findings, roadmap status, and reusable task prompts |
 | `docs/adrs/0003-stage3-roco-collaboration.md` | Stage 3 state machine, failure, trace, and memory-boundary decisions |
 | `docs/adrs/0004-stage4-reflection-memory-design.md` | Stage 4 memory, retrieval, truncation, commit, and recovery decisions |
+| `docs/adrs/0005-offline-openai-compatible-adapter.md` | Stage 5 transport injection, strict response, retry, budget, and security decisions |
 | `docs/RoCo_reproduction_and_EBBO_roadmap.md` | Six-stage reproduction and migration plan |
 | `docs/paper/` | Source-grounded reading notes and paper-gap analysis |
 | `configs/paper_defaults.yaml` | Paper-aligned settings, annotated with non-disclosed items |
 | `configs/smoke/tsp_mock.yaml` | Unchanged Stage 2 deterministic EoH regression configuration |
 | `configs/smoke/tsp_roco_mock.yaml` | Deterministic Stage 3 four-role collaboration configuration |
 | `configs/smoke/tsp_memory_mock.yaml` | Opt-in two-generation Stage 4 offline memory configuration |
+| `configs/providers/openai_compatible_fake.example.yaml` | Documentation-only, no-key fake-transport adapter example |
+| `src/roco_ebbo/llm/openai_compatible.py` | Transport-neutral EoH/RoCo adapter and audit contracts; no HTTP implementation |
 | `src/roco_ebbo/` | RoCo / EBBO implementation package |
 | `tests/` | Unit, integration, and regression tests |
 | `scripts/` | WSL bootstrap and later experiment entry points |
@@ -56,6 +60,11 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 - Every real run must record git SHA, seed, prompt version, model, temperatures, budget ledger, dataset checksum, and environment export.
 - Track `llm_calls`, `tokens`, `generated_candidates`, `valid_evals`, cost, and wall-clock time separately.
 - CI uses only a mock LLM and small deterministic tests.
+- Provider credentials, endpoints, and headers never belong in adapter config, logs, exceptions, or
+  audit objects. The adapter does not read environment variables, `.env`, or keyrings.
+- A real-model run must additionally record the adapter, prompt, tokenizer/token-counter, model, and
+  pricing-table versions. Provider-reported usage is mandatory; local token counts cannot be used to
+  invent billing usage.
 
 ## Paper facts versus engineering decisions
 
@@ -118,6 +127,32 @@ remains 44/28/28. These counts establish control-flow boundaries, not a performa
 
 Stage 4 V1 does not add a real provider, network access, cache, embeddings, new benchmarks, EBBO, or
 process-level crash orchestration outside the deterministic post-commit interruption control.
+
+## Stage 5 offline OpenAI-compatible adapter
+
+`OpenAICompatibleProvider` implements the existing EoH and generation-local RoCo provider
+interfaces. Its constructor requires an explicit transport, model-specific versioned token counter,
+and versioned pricing table. The repository deliberately provides no HTTP client and the existing
+CLI/smoke loader still accepts only Mock; omitting `llm.provider` also resolves to Mock.
+
+The adapter sends one non-streaming, single-result strict JSON request, preserves each RoCo request's
+prompt and temperature, and rejects missing/unknown fields, duplicate JSON keys, non-finite values,
+multiple choices, mismatched models, and invalid usage. Calls are retried only for configured,
+classified transient failures and never more than `max_retries + 1` attempts. Every transport-
+accepted attempt counts as an LLM call. Valid provider usage drives input/output token and synthetic
+test-cost accounting; missing or illegal usage closes the adapter path without substituting character
+counts or zero cost.
+
+Provider audits contain contract/model/token-counter/pricing versions, hashes, usage, cost, retry and
+token-context decisions—not raw prompts, responses, request IDs, headers, or credentials. Context
+truncation uses the injected token-counter contract and records every removed optional field; it does
+not alter Stage 4's separate Mock character-budget behavior.
+
+The independent `tests/unit/test_openai_compatible_provider.py` suite uses only scripted fake
+responses and a fake token counter. Passing it means the adapter contract is offline-tested. It does
+not establish HTTP/TLS/auth compatibility, validate a real tokenizer or price, evaluate model output
+quality, or reproduce paper results. Any real transport, credential use, network call, or paid run
+requires a separate explicit authorization and verification task.
 
 ## Original repository purpose
 

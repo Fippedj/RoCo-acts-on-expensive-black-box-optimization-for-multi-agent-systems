@@ -119,7 +119,7 @@ def load_smoke_settings(path: str | Path) -> SmokeSettings:
             max_valid_evals=_optional_int(budgets.get("max_valid_evals")),
             max_llm_calls=_optional_int(budgets.get("max_llm_calls")),
             max_tokens=_optional_int(budgets.get("max_tokens")),
-            provider=str(llm["provider"]),
+            provider=str(llm.get("provider", "mock")),
             mode=str(evolution.get("mode", "eoh")),
             population_size=int(evolution["population_size"]),
             generations=int(evolution["generations"]),

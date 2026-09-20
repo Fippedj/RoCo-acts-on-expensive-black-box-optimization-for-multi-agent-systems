@@ -182,6 +182,33 @@ class BudgetLedger:
         )
 
     @property
+    def exceeded_limits(self) -> tuple[str, ...]:
+        """Return limits crossed while settling already accepted external work.
+
+        Ordinary operations are rejected before they can exceed a hard limit.  An
+        external provider can, however, report more usage than was reserved after
+        it has accepted a request.  That usage must remain visible rather than be
+        rolled back, so provider adapters use :meth:`settle_accepted_llm_call` and
+        then fail closed when this property is non-empty.
+        """
+
+        pairs: tuple[tuple[str, float, float | None], ...] = (
+            ("llm_calls", self.llm_calls, self.max_llm_calls),
+            ("tokens", self.tokens, self.max_tokens),
+            (
+                "generated_candidates",
+                self.generated_candidates,
+                self.max_generated_candidates,
+            ),
+            ("valid_evals", self.valid_evals, self.max_valid_evals),
+            ("cost", self.cost, self.max_cost),
+            ("wall_time", self.wall_time, self.max_wall_time),
+        )
+        return tuple(
+            name for name, current, limit in pairs if limit is not None and current > limit
+        )
+
+    @property
     def budget_reached(self) -> bool:
         return bool(self.reached_limits)
 
@@ -251,6 +278,49 @@ class BudgetLedger:
         self.generated_candidates += generated_candidates
         self.valid_evals += valid_evals
         self.cost += cost
+
+    def settle_accepted_llm_call(
+        self,
+        *,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        generated_candidates: int = 0,
+        cost: float | None = None,
+    ) -> None:
+        """Record an external call after the transport says it was accepted.
+
+        This is deliberately different from :meth:`consume`: an accepted remote
+        side effect cannot be undone if its reported usage crosses a reservation.
+        The caller must preflight before sending, invoke this method exactly once
+        per accepted attempt, and stop if :attr:`exceeded_limits` is non-empty.
+
+        Missing usage or price is represented by ``None`` and is not replaced by
+        zero.  The accepted call itself is still counted; the adapter must then
+        surface a fail-closed error with an audit record showing unknown usage.
+        """
+
+        if (input_tokens is None) != (output_tokens is None):
+            raise ValueError("accepted LLM usage must provide both token counters or neither")
+        for name, value in {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "generated_candidates": generated_candidates,
+        }.items():
+            if value is not None and (type(value) is not int or value < 0):
+                raise ValueError(f"{name} must be a non-negative integer")
+        if cost is not None and (
+            type(cost) not in (int, float) or not math.isfinite(cost) or cost < 0
+        ):
+            raise ValueError("cost must be finite and non-negative or null")
+
+        self.llm_calls += 1
+        if input_tokens is not None:
+            assert output_tokens is not None
+            self.input_tokens += input_tokens
+            self.output_tokens += output_tokens
+        self.generated_candidates += generated_candidates
+        if cost is not None:
+            self.cost += float(cost)
 
     def observe_wall_time(self, elapsed_seconds: float) -> None:
         """Record measured elapsed time; callers check limits before starting work."""

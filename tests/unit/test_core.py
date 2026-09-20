@@ -48,6 +48,32 @@ def test_budget_ledger_rejects_after_limit_and_does_not_partially_commit() -> No
     assert fresh.tokens == 0
 
 
+def test_budget_ledger_settles_an_accepted_call_even_when_reported_usage_crosses_limit() -> None:
+    ledger = BudgetLedger(max_llm_calls=1, max_tokens=5, max_cost=0.5)
+    ledger.ensure_can_start(llm_calls=1, input_tokens=2, output_tokens=3, cost=0.5)
+
+    ledger.settle_accepted_llm_call(
+        input_tokens=3,
+        output_tokens=3,
+        cost=0.6,
+    )
+
+    assert ledger.llm_calls == 1
+    assert ledger.tokens == 6
+    assert ledger.cost == 0.6
+    assert ledger.exceeded_limits == ("tokens", "cost")
+
+
+def test_budget_ledger_does_not_fabricate_missing_accepted_usage() -> None:
+    ledger = BudgetLedger(max_llm_calls=2)
+
+    ledger.settle_accepted_llm_call()
+
+    assert ledger.llm_calls == 1
+    assert ledger.input_tokens == ledger.output_tokens == 0
+    assert ledger.cost == 0.0
+
+
 def test_run_manifest_serialization_and_write(tmp_path: Path) -> None:
     manifest = RunManifest(
         seed=7,

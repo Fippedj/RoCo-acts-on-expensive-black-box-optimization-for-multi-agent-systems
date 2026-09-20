@@ -40,7 +40,7 @@ def main() -> None:
         print(f"roco-ebbo={__version__}")
         print(f"python={sys.version.split()[0]}")
         print(f"platform={platform.platform()}")
-        print("status=stage3-roco-ready; provider=mock; network=unused")
+        print("status=stage5-provider-adapter-offline; default_provider=mock; network=unused")
         return
     if args.command == "smoke":
         _run_smoke_command(args.config, args.runs_dir)
