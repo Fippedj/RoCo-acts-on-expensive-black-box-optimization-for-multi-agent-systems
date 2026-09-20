@@ -31,21 +31,25 @@ The paper's body says 400 LLM calls per generation, while its appendix says a ma
 
 ## Current checkpoint and next task
 
-The active Stage 4 worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage4` on
-`stage/04-reflection-memory`. P2 design is published at `cf1e06b`; P3a is published at `a0b24b1`,
-and P3b is published at `576b1dd` with its status record at `51b8d44`.
-Use `git rev-parse HEAD` and `git rev-list --left-right --count HEAD...@{upstream}` for the live
-commit and synchronization state instead of copying a fixed HEAD into documentation.
+The active Stage 5 worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5` on
+`stage/05-provider-adapter`, based exactly on the published Stage 4 checkpoint `59c3357`.
+Use `git rev-parse HEAD` and live status commands for the current implementation state instead of
+copying a self-referential Stage 5 HEAD into documentation.
 
 P3a supplies strict memory schemas, pure Stage 3 trace-to-event conversion, immutable generation
 segments, SHA-256/commit-last publication, and JSON-safe checkpoint recovery. P3b adds opt-in role-summary calls,
 deterministic K=5 retrieval, auditable character-budget truncation, and three-role memory mutation.
 It passed 75 tests, Ruff, mypy, doctor, the unchanged 12/12 and 18/13 smokes, and its new 44/28 smoke.
-P4 is verified and recorded by local implementation commit `c7a1ae4`: it adds explicit checkpoint
+P4 was implemented by `c7a1ae4` and is included in the published Stage 4 checkpoint: it adds explicit checkpoint
 resume from a caller-specified run/memory directory, post-generation-commit deterministic
 interruption, full-versus-resumed non-time state and canonical artifact/hash equivalence, and a
-memory-off/on ablation entry. Determine publication state with `git status --short --branch`; do not
-hard-code current HEAD or ahead/behind. The frozen Stage 4 V1 offline Mock implementation is complete.
+memory-off/on ablation entry. The frozen Stage 4 V1 offline Mock implementation is complete.
+Stage 5 P5 is implemented by `38428700d8f272f8107e8cd042f5fdec24d3e33d`: it adds an
+OpenAI-compatible EoH/RoCo adapter with transport, token-counter, pricing, strict response, retry,
+budget, audit, and redaction contracts. It has been exercised only with injected fake transport; the
+repository still has no HTTP transport, reads no real key, makes no network request, and performs no
+real-provider smoke. Mock remains the default provider; query current HEAD, upstream, and publication
+state with live Git commands.
 
 ## Current Stage 3 executable scope
 
@@ -60,13 +64,28 @@ Candidate code must define `heuristic(distance_matrix) -> tour`. EoH and RoCo ca
 
 The RoCo path writes `collaboration_trace.jsonl` in the run directory, one serializable trace per generation. Check it for the elite pair, ranks, requested/completed rounds, role inputs and outputs, evaluation results, budget deltas, structured failures, and selected IDs. A failed role or invalid candidate is skipped safely; a hard budget stops new work without discarding already valid candidates.
 
-This trace is short-lived run evidence. Stage 3 itself does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; Stage 4 V1 supplies those capabilities through a separate opt-in runtime. Their design is frozen in `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`. Real providers, expensive black-box optimization, and other benchmarks remain out of scope.
+This trace is short-lived run evidence. Stage 3 itself does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; Stage 4 V1 supplies those capabilities through a separate opt-in runtime. Their design is frozen in `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`. A transport-neutral adapter now exists, but real provider transport/interoperability, expensive black-box optimization, and other benchmarks remain out of scope.
 
 P3b adds `configs/smoke/tsp_memory_mock.yaml` as a separate, explicit opt-in.
 With two generations, `T=2`, and one memory elite, its no-failure accounting is 44 Mock LLM calls
 and 28 valid evaluations. It writes P3a generation segments/summaries/checkpoints/commit markers plus
 a runtime audit for retrieval and truncation. The existing Stage 2 and Stage 3 presets do not enable
 memory and retain their 12/12 and 18/13 contracts.
+
+## Stage 5 provider safety boundary
+
+- `src/roco_ebbo/llm/openai_compatible.py` has no endpoint, credential loader, HTTP client, or
+  import/construction side effect. A caller must explicitly inject a transport and a model-specific,
+  versioned token counter.
+- `configs/providers/openai_compatible_fake.example.yaml` contains no key or endpoint and uses only a
+  fake model plus synthetic pricing. It is documentation, not a runnable network smoke config.
+- Existing smoke configs and a missing provider selection resolve to Mock. The smoke loader rejects
+  `openai-compatible`, so the normal CLI cannot silently initialize a network path.
+- Fake tests cover EoH/four-role requests, temperatures, strict JSON/schema, error categories,
+  timeout/retry limits, accepted-error accounting, usage/cost, budget closure, token-context audit,
+  and sensitive-data non-echo.
+- This proves only the offline adapter contract. A real transport, credentials, actual endpoint,
+  tokenizer/pricing verification, API call, or paid experiment requires separate authorization.
 
 ```bash
 conda activate roco-dev
@@ -80,4 +99,4 @@ python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. The next development task is P5: implement an OpenAI-compatible provider and verify it only with fake transport—no real API calls.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary. P6 is next: TSP experiment protocol and Mock/fake dry-run only. It does not authorize real-provider interoperability, model experiments, or paper-reproduction claims.

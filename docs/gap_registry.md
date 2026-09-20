@@ -18,20 +18,20 @@
 | G-006 | LTReflect 存储后端 | 必须自行设计 | p.10–16 `S011` | 每代不可变 JSONL segment + 摘要/checkpoint；commit-last marker 以长度和 SHA-256 验证 | P3a 已实现 fsync/原子 rename、孤儿检测及 checkpoint 恢复测试；待正常推送 | ADR-0004；P3a 已完成 |
 | G-007 | LTReflect 检索 | 必须自行设计 | p.10–16 `S011` | 前代已提交、同 benchmark/objective/role 的 `K=5`；默认最近改善 3 条、其他/失败 2 条，不足跨类补位，最终旧到新注入 | P3b 提交 `576b1dd` 已实现并验证 commit-only 读取、3/2 作用域、补位、旧到新排序及审计；远端状态实时核验 | ADR-0004；P3b 已完成 |
 | G-008 | memory-guided mutation prompt | 必须自行设计 | p.4 `S007`、p.10 `S008` 只给机制；`S011` 指出 prompt/检索不完整 | 每个配置化精英按 E/X/I 各一次；输入为任务契约、精英、角色摘要、K 条数值事件，输出单候选严格 JSON；外部文本作为数据编码 | P3b 提交 `576b1dd` 以 opt-in Mock 路径接入每精英三候选、统一 evaluator/Top-N 和结构化失败；44/28 smoke 已通过 | ADR-0004；P3b 已完成 |
-| G-009 | token 预算 | 必须自行设计 | p.10–16 `S011` | 分别记录输入/输出/总 token；Stage 2/3 使用 run-scoped 总硬上限，角色事件记录预算前后，当前不宣称论文值或每角色配额 | tokenizer/model 差异；真实 provider 若需每角色上限须新增配置 | Stage 2/3 已分账；真实 provider 前扩展 |
-| G-010 | 上下文截断 | 必须自行设计 | p.10–16 `S011` | ADR-0004 固定保留优先级和删除审计；Mock 用确定性字符/字段预算，真实 provider 必须另加 tokenizer 契约 | P3b `576b1dd` 已按事件文本→完整旧事件→摘要文本执行并记录审计；字符预算仍不等于模型 token | P3b 已完成；真实 provider 前再版本化 |
+| G-009 | token 预算 | 必须自行设计 | p.10–16 `S011` | 分别记录输入/输出/总 token；Mock 词数记账保持原回归，Stage 5 adapter 只接受 provider usage 作为结算事实，并用显式注入、带 model/version 的 token-counter 做发送前上下文预检 | usage 缺失/非法时只结算可确认的 accepted call，不能用 counter、字符数或 0 回填；真实 tokenizer 仍待具体供应商验证 | ADR-0005；fake transport 已覆盖 |
+| G-010 | 上下文截断 | 必须自行设计 | p.10–16 `S011` | ADR-0004 的 Mock 字符/字段优先级保持不变；Stage 5 adapter 新增独立的 `roco-provider-context-audit-v1` token-counter 契约，按固定顺序删除可选反馈/候选文本并保留必需契约字段 | fake counter 只验证协议，不能证明真实 tokenizer 精度；Stage 4 memory 的真实模型 token 截断仍未接线 | ADR-0004/0005；provider adapter 已离线验证 |
 | G-011 | `G`（总代数） | 必须自行设计 | 当前材料无固定值；p.10 `S008` 仅有代循环 | 不写死，以配置的硬预算停止；Stage 2 smoke 的 `G=2` 与 Stage 3 smoke 的 `G=1` 都只是测试值 | 预算作用域不清可能影响论文曲线对齐 | Stage 2/3 run config |
 | G-012 | 400 calls 与 400 evaluations | 论文陈述冲突/口径不完整 | p.5 `S009`：400 calls/generation；Appendix D 摘要：maximum 400 evaluations；p.10–16 `S011` | 两个独立 counter/limit，连同 tokens、candidates、cost、wall time 分账；实验指定首个触发即停止 | 必须复核 PDF 与可能的作者代码/回复 | ADR-0001；Stage 2 |
 | G-013 | generated candidate 定义 | 必须自行设计 | 论文未定义预算术语 | 成功解析为一个新方案即计数；不要求代码有效或已评估 | 多方案单响应如何拆分须由输出 schema 禁止或定义 | Stage 2 / core models 前 |
 | G-014 | valid evaluation 定义 | 必须自行设计 | 论文未定义失败/缓存计数 | 只有完成目标函数并产生可比较数值才增加；缓存命中单列，默认不重复增加 | 超时/部分实例成功/NaN 的规则待 evaluator 协议 | Stage 2 / evaluator 前 |
-| G-015 | 无效代码重试 | 必须自行设计 | p.10–16 `S011` | Stage 2/3 不做 LLM 修复重试；静态检查/评估失败写结构化事件并安全跳过，调用照常记账 | 未来若加修复必须配置上限并保持原失败事件，不能改变现有 smoke 调用数 | 后续真实 provider ADR |
+| G-015 | 无效代码重试 | 必须自行设计 | p.10–16 `S011` | Stage 2–4 仍不做内容/代码修复；ADR-0005 只允许 timeout、retryable transport、rate limit 和可重试 HTTP 5xx 在显式 `max_retries` 内重发同一请求，每个 accepted attempt 单独计费 | transport retry 不等于 prompt 修复；JSON/schema/auth/usage/context/budget 错误不得重试，既有 Mock smoke 调用数不变 | ADR-0005；fake transport 已覆盖 |
 | G-016 | 训练超时 | 证据不足，必须复核 | `S009` 聚合实验设置但无逐项原文；`S011` 指出复现细节不足 | 暂保留 60 s、CVRP 120 s 工程占位；明确非论文设定 | 必须确认超时作用域；否则有效评估不可比 | Stage 2 / TSP evaluator 前 |
 | G-017 | 并行调度 | 必须自行设计 | 论文未披露；`S011` | Stage 2/3 串行；并行结果不得影响随机流、tie-break 或 budget commit 顺序 | 后续并行需 reservation/commit 语义 | Stage 5 并行 |
 | G-018 | 随机种子 | 必须自行设计 | p.10–16 `S011` | 工程默认 seed 2025；标签化派生并记录 Mock provider、TSP instance 和 RoCo collaboration/采样随机流 | 真实 LLM 通常不能完全确定性复现 | Stage 2/3 manifest |
 | G-019 | Top-N tie-break/去重 | 必须自行设计 | p.3 `S005` 只明确确定性 Top-N | 候选 ID 含稳定内容摘要和谱系；有效候选按 `(score, candidate_id)` 排序；Stage 2/3 不做跨候选内容去重/缓存 | 若以后去重，是否节省 evaluation 与谱系保留需同时定义 | ADR-0002；后续缓存 ADR |
 | G-020 | Critic better/worse 措辞矛盾 | 论文歧义 | p.10–16 `S011`；分析稿 §5.6 | 原歧义保留在论文资料；可执行 `roco-stage3-v1` 契约明确按 evaluator 方向和已验证数值比较，不从文本猜测分数 | 属于有意、已版本化的工程修订；论文 prompt 逐字复现必须单列实验 | ADR-0003；Stage 3 已固化 |
 | G-021 | 每代候选/调用数量 | 必须自行设计 | p.3 `S005`、p.10 `S008` 未给足算子 multiplicity 与精英集合大小 | EoH multiplicity 继续配置化；Stage 3 每代协作一对精英、每轮 E/X 各一候选、末尾一个 Integrator 候选；Mock trace 可手工核对预算 | 无法仅从 400 反推；真实复现实验需单列 multiplicity | ADR-0002/0003；已用于 smoke |
-| G-022 | Mock 与真实 LLM 的优先级 | 必须自行设计 | 论文使用 GPT-4o-mini（`S009`）；工程复现需要确定性路径 | CI、开发和验收使用角色感知 Mock；`eoh`/`roco` 均离线，真实 provider 不在 Stage 3 范围 | Mock 只验证控制流、失败和预算，不验证论文性能 | ADR-0001/0003；Stage 3 |
+| G-022 | Mock 与真实 LLM 的优先级 | 必须自行设计 | 论文使用 GPT-4o-mini（`S009`）；工程复现需要确定性路径 | CI、CLI、smoke 和缺省选择继续使用角色感知 Mock；Stage 5 adapter 只有显式依赖注入的 fake-transport 测试，仓库不提供 HTTP transport | Mock/fake 只验证控制流、协议、失败和预算；不验证真实兼容性、模型质量或论文性能 | ADR-0001/0003/0005；adapter 已离线验证 |
 | G-023 | 单代协作 trace 与长期记忆的边界 | 必须自行设计 | 论文描述反思/记忆但未给可执行日志 schema；p.4 `S007`、p.10–16 `S011` | `roco-collaboration-trace-v1` 每代记录精英对、角色事件、候选/反馈、评估、预算前后与选择结果；只作 run audit，不供跨代检索 | JSONL 外形容易被误认为 LTReflect；报告必须注明 scope，Stage 4 另定 memory schema | ADR-0003；Stage 3 |
 | G-024 | Stage 2/3 配置兼容分派 | 必须自行设计 | 论文未涉及仓库迁移兼容 | `evolution.mode: eoh|roco`；字段缺省按 `eoh`，旧 smoke 行为作为回归契约，RoCo 使用独立配置 | 后续新增模式不得改变缺省含义或旧候选顺序 | ADR-0003；Stage 3 |
 | G-025 | trace 到长期事件的边界 | 必须自行设计 | 论文没有日志 schema；Stage 3 trace 明确 generation-local | 纯转换器从 proposal/compare/integrate 派生事件；初始 Critic 不入长期 memory；当代事件提交前不可被历史检索 | P3a 已完成成功/失败 mapping、Critic 来源和 selected 回填测试；待正常推送 | ADR-0004；P3a 已完成 |
@@ -39,6 +39,10 @@
 | G-027 | 代级恢复 | 必须自行设计 | 论文未披露 crash consistency | population、账本、随机/provider 游标进入 JSON checkpoint；只从连续有效 commit 恢复，半写代忽略 | P3a 底座已发布；P4 实现提交 `c7a1ae4` 增加显式 engine resume、提交后中断、坏 hash/gap/config/seed fail-closed 及不中断/恢复规范工件哈希等价 | ADR-0004；Stage 4 V1 已完成 |
 | G-029 | memory/no-memory 消融边界 | 必须自行设计 | 论文未给出可执行的离线消融记账与工件协议 | 同 seed、`T=2`、两代显式比较 memory off/on；off 不构造 runtime、不写 memory，on 保持既有路径；只报告控制流与预算差异 | P4 `c7a1ae4` 验证 off 为 32 calls/22 generated/22 valid、on 为 44/28/28；不作性能优劣结论 | Stage 4 V1 已完成 |
 | G-028 | memory 候选去重/cache | 必须自行设计 | 论文没有预算口径；Stage 2/3 当前不去重 | Stage 4 V1 仍不去重、不缓存；相同代码照常生成和评估，可仅记录代码哈希 | 成本较高但保持账本连续；未来改变需新 ADR/cache-hit counter | ADR-0004；后续阶段 |
+| G-030 | provider transport 与凭据边界 | 必须自行设计 | 论文未披露 SDK、endpoint、认证或客户端重试；真实副作用需单独授权 | `OpenAICompatibleTransport` 只通过构造注入；request 不含 endpoint/header/key，模块不读 env/`.env`/keyring，仓库无 HTTP 实现；默认/CLI 路径仍为 Mock | 真实 TLS、认证、客户端 retry 和供应商兼容性完全未验证 | ADR-0005；真实 transport 另行授权 |
+| G-031 | provider 响应与错误分类 | 必须自行设计 | 论文未给 wire schema 或失败 taxonomy | 单 choice、非流式严格 JSON；envelope/choice/message/usage/角色输出拒绝未知/缺失/重复/non-finite；分类 timeout、retryable transport、auth/permission、rate limit、malformed JSON、schema 和 provider error | 供应商扩展字段必须通过新 contract 版本显式决定，不能静默放宽 | ADR-0005；fake transport 已覆盖 |
+| G-032 | accepted attempt、usage 与价格结算 | 必须自行设计 | ADR-0001 把在途结算、真实价格留待 provider 阶段 | 发送前以 input + max output + 最大费用预检；accepted attempt 即计 call，合法 usage 按版本化 synthetic price table 结算；未知/非法 usage 不伪造 tokens/cost 并关闭 adapter 后续发送；接受后实际超支如实入账再停止 | synthetic 价格不是厂商价格；真实 model/币种/价格版本需另行核验 | ADR-0005；fake transport 已覆盖 |
+| G-033 | 离线 adapter 与真实实验边界 | 必须自行设计 | 工程验证与论文性能证据不是同一层级 | P5 仅证明 EoH/RoCo adapter 在 fake transport 下的请求、响应、重试、预算、上下文和脱敏契约；Stage 4 memory provider、真实 API 和实验均未接入 | 不得把“adapter 已离线验证”写成“真实 provider 已验证”或“论文复现完成” | ADR-0005；真实互操作/Stage 5 实验后续 |
 
 ## 当前阻断项
 
@@ -50,7 +54,11 @@ G-020 中未能从论文唯一确定的部分已作为显式工程口径版本�
 Integrator 位置、Critic 原 prompt 和训练 timeout。P2 已完成：Stage 4 的 schema、检索、
 摘要、mutation 与恢复协议已经由 `cf1e06b`/ADR-0004 设计冻结并发布。P3a 事实层与恢复
 底座由 `a0b24b1` 发布，P3b 运行时由 `576b1dd` 发布；远端同步状态仍须实时核验。当前
-P4 已由本地实现提交 `c7a1ae4` 固化，并验证 engine 级提交后中断恢复、不中断/恢复端到端
-规范哈希等价及 memory/no-memory 消融；远端发布状态由实时 Git 判断。Stage 4 冻结 V1 的
-离线 Mock 实现已完成。下一任务 P5 仅实现 OpenAI-compatible provider 并使用 fake
-transport 验证；真实 API、真实模型实验和论文数值复现仍未实现。
+P4 由 `c7a1ae4` 实现并包含在 Stage 4 发布基线 `59c3357` 中，已验证 engine 级提交后
+中断恢复、不中断/恢复端到端规范哈希等价及 memory/no-memory 消融。Stage 4 冻结 V1 的
+离线 Mock 实现已完成。P5 的 OpenAI-compatible EoH/RoCo adapter 已由
+`38428700d8f272f8107e8cd042f5fdec24d3e33d` 按 ADR-0005 使用 injected fake transport
+离线验证；仓库没有 HTTP transport，不读取真实凭据、不发起网络，Mock 仍为默认。这不包含
+真实 API、Stage 4 memory-provider 接线、真实模型互操作/实验或论文数值复现。当前 HEAD、
+upstream 与发布状态必须用实时 Git 查询。下一任务 P6 仅为 TSP 实验协议与 Mock/fake
+dry-run；上述任何真实副作用仍需单独授权。

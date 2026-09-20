@@ -2,7 +2,7 @@
 
 > 用途：把本文件单独交给一个新的 AI 会话，使它能理解仓库现状、区分已提交与未提交工作，并帮助用户设计后续实现任务的提示词。
 >
-> 快照日期：2026-09-19（Asia/Shanghai）。本文件是状态快照，不是 Git 或测试结果的替代品；新会话必须先用只读命令复核。
+> 快照日期：2026-09-20（Asia/Shanghai）。本文件是状态快照，不是 Git 或测试结果的替代品；新会话必须先用只读命令复核。
 
 ## 0. 给新 AI 会话的工作规则
 
@@ -32,14 +32,15 @@ git diff --check
 ```yaml
 snapshot:
   date: 2026-09-20
-  repository: /home/fj/RoCo-BO/RoCo-ebbo-stage4
+  repository: /home/fj/RoCo-BO/RoCo-ebbo-stage5
   origin: https://github.com/Fippedj/RoCo-acts-on-expensive-black-box-optimization-for-multi-agent-systems.git
-  branch: stage/04-reflection-memory
+  branch: stage/05-provider-adapter
   stage4_parent: f6f3e1dd19427704971d443f28e894ce57af3676
+  stage5_baseline: 59c335757b65935b29b7141ef6f0e6d338eb3603
   current_head: "run: git rev-parse HEAD"
   current_head_subject: "run: git log -1 --format=%s"
-  upstream: origin/stage/04-reflection-memory
-  upstream_distance: "run: git rev-list --left-right --count HEAD...@{upstream}"
+  upstream: null
+  upstream_distance: "not applicable until an upstream is configured; run: git branch -vv"
   stage3_implementation_commit: 2ce66a4f66c0e446fa8b44a729783074cc13064a
   stage3_publication_commit: f6f3e1dd19427704971d443f28e894ce57af3676
   stage4_design_commit: cf1e06b5fcaac29a4c17694e2f1f336e784a9521
@@ -48,23 +49,29 @@ snapshot:
   stage4_p3a_commit: a0b24b118870633855f14553e06c0989c92a3aac
   stage4_p3a_committed_locally: true
   stage4_p3a_remote_status: published
+  stage4_p3a_status_commit: 3cca849
   stage4_p3b_commit: 576b1dd7d39e9f4c5ecd79bc771a23dfaa539852
   stage4_p3b_committed_locally: true
   stage4_p3b_remote_status: published
   stage4_p3b_status_commit: 51b8d44
   stage4_p4_commit: c7a1ae4c151125c4f3e45185ce62403a92942883
-  stage4_p4_status: "verified local implementation commit; determine publication from live Git"
-  stage4_runtime_published: "run: git status --short --branch"
-  expected_uncommitted_exception: ".vscode/settings.json only after the P4 status-doc commit"
+  stage4_p4_status_commit: 59c335757b65935b29b7141ef6f0e6d338eb3603
+  stage4_runtime_published: true
+  stage5_p5_implementation_commit: 38428700d8f272f8107e8cd042f5fdec24d3e33d
+  stage5_p5_status: "implemented by the commit above; query current HEAD, upstream, and publication with live Git"
+  stage5_complete: false
   agents_md_present: false
   codegraph_present: false
   network_required: false
   real_llm_enabled: false
-  current_provider: mock-only
+  current_provider: mock-default
+  openai_compatible_adapter: fake-transport-only
+  http_transport_implemented: false
+  environment_credentials_supported: false
   current_benchmark: deterministic TSP-20 smoke
   python_target: "3.11"
   validation_environment: roco-dev
-  last_validation:
+  stage3_validation:
     pytest: "65 passed"
     ruff_check: passed
     ruff_format_check: passed
@@ -73,7 +80,7 @@ snapshot:
     stage2_smoke: "12 llm_calls, 12 valid_evals, budget_reached=false"
     stage3_smoke: "18 llm_calls, 13 valid_evals, budget_reached=false"
     git_diff_check: passed
-  p3b_draft_validation:
+  stage4_p3b_validation:
     pytest: "75 passed"
     ruff_check: passed
     ruff_format_check: "36 files already formatted"
@@ -83,7 +90,7 @@ snapshot:
     stage3_smoke: "18 llm_calls, 13 valid_evals, budget_reached=false"
     stage4_memory_smoke: "44 llm_calls, 28 valid_evals, budget_reached=false"
     git_diff_check: passed
-  p4_draft_validation:
+  stage4_p4_published_validation:
     pytest: "80 passed"
     ruff_check: passed
     ruff_format_check: passed
@@ -95,13 +102,30 @@ snapshot:
     recovery_equivalence: "full/resumed canonical events, summaries, checkpoints, commits and hashes equal"
     ablation: "memory off 32/22/22; memory on 44/28/28 (calls/generated/valid)"
     git_diff_check: passed
+  p5_offline_adapter:
+    scope: "EoH and generation-local RoCo only; Stage 4 memory remains Mock"
+    transport: "injected fake transport only; no HTTP implementation"
+    credentials: "not read from os.environ, .env, keyring, or real secret stores"
+    verification: "offline fake-transport tests; final validation recorded below"
+  p5_worktree_validation:
+    pytest: "125 passed"
+    ruff_check: passed
+    ruff_format_check: "39 files already formatted"
+    mypy: "Success: no issues found in 23 source files"
+    doctor: "stage5-provider-adapter-offline; default_provider=mock; network=unused"
+    stage2_smoke: "12 llm_calls, 12 valid_evals, budget_reached=false"
+    stage3_smoke: "18 llm_calls, 13 valid_evals, budget_reached=false"
+    stage4_memory_smoke: "44 llm_calls, 28 valid_evals, budget_reached=false"
+    git_diff_check: passed
 ```
 
 重要：Stage 4 设计已由 `cf1e06b` 冻结并发布，P3a/P3b 分别由 `a0b24b1` 与 `576b1dd`
-发布。P4 恢复/消融实现已完成质量门禁，并形成本地实现提交
-`c7a1ae4c151125c4f3e45185ce62403a92942883`；精确 HEAD、远端同步状态和发布结果必须用
-本文件开头的实时 Git 命令复核。Stage 4 冻结 V1 的离线 Mock 实现已完成，但这不等于
-真实 provider、真实模型实验或论文数值复现完成。
+发布。P4 恢复/消融实现由 `c7a1ae4c151125c4f3e45185ce62403a92942883` 固化，并由
+`59c335757b65935b29b7141ef6f0e6d338eb3603` 记录完成和发布状态；Stage 5 分支以该提交为
+精确基线。P5 离线 adapter 子任务由
+`38428700d8f272f8107e8cd042f5fdec24d3e33d` 实现，但只以依赖注入的 fake transport
+验证 EoH/RoCo 协议。仓库没有 HTTP transport、真实 endpoint/key、真实模型调用或付费
+实验；这不等于整个 Stage 5、真实 provider 互操作或论文数值复现完成。
 
 ## 2. 分支和 worktree 关系
 
@@ -129,11 +153,19 @@ stage/04-reflection-memory / origin/stage/04-reflection-memory
       |
   a0b24b1  feat: add Stage 4 P3a memory foundation
       |
+  3cca849  docs: record Stage 4 P3a publication status
+      |
   576b1dd  feat: add Stage 4 P3b memory runtime
       |
   51b8d44  docs: record Stage 4 P3b verification status
       |
   c7a1ae4  feat: add Stage 4 P4 deterministic recovery
+      |
+  59c3357  docs: record Stage 4 P4 completion status
+      |
+  3842870  feat: add offline OpenAI-compatible provider adapter
+      |
+stage/05-provider-adapter (query upstream and publication with live Git)
 ```
 
 `stage/02-eoh-mvp` 还在另一个 worktree：
@@ -148,18 +180,24 @@ Stage 3 worktree：
 /home/fj/RoCo-BO/RoCo-ebbo-stage3
 ```
 
-当前 Stage 4 worktree：
+Stage 4 worktree：
 
 ```text
 /home/fj/RoCo-BO/RoCo-ebbo-stage4
 ```
 
-当前分支 `stage/04-reflection-memory` 跟踪同名远端分支。P3a/P3b 已发布，P4 已形成上述
-本地实现提交；发布状态由实时 Git 判断。不要在文档中固定自引用的 current HEAD
-或 ahead/behind；用 `git rev-parse HEAD`、`git log -1 --format=%s` 和
-`git rev-list --left-right --count HEAD...@{upstream}` 获取实时值。每次发布后，工作区
-应无 Stage 4 源码/文档未提交修改；`.vscode/settings.json` 是必须原样保留且不得暂存的
-无关用户修改，仍须用实时 `git status` 复核。
+当前 Stage 5 worktree：
+
+```text
+/home/fj/RoCo-BO/RoCo-ebbo-stage5
+```
+
+`stage/04-reflection-memory` 已通过 `59c3357` 发布完整 Stage 4 V1。当前本地分支
+`stage/05-provider-adapter` 从该提交创建，P5 实现提交为 `3842870`；当前 HEAD、upstream
+与发布状态必须用实时 Git 判断。不要在文档中固定自引用的 current HEAD 或 ahead/behind；用
+`git rev-parse HEAD`、`git log -1 --format=%s`、`git branch -vv` 和适用时的
+`git rev-list --left-right --count HEAD...@{upstream}` 获取实时值。实时 `git status`
+显示的任何修改都属于当前工作，未经用户确认不得覆盖、丢弃、暂存或提交。
 
 本机 `roco-dev` 环境中的 editable install 曾指向 Stage 2 的兄弟 worktree。为确保验证加载当前源码，最近一次验证先设置了：
 
@@ -229,12 +267,13 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 | Stage 1：论文规格 | 已提交并有远端分支 | algorithm、参数登记、缺口表、ADR-0001 | 100% |
 | Stage 2：确定性 EoH MVP | 已提交并有远端分支 | Mock、预算、Candidate/Population、TSP-20 evaluator、CLI smoke | 100% |
 | Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
-| Stage 4：反思与跨代记忆 | P4 本地实现提交已形成；发布状态实时核验 | ADR-0004、事实/恢复底座、opt-in 摘要/检索/截断/mutation、显式 resume 与离线消融 | 冻结 V1 离线 Mock 实现 100% |
-| Stage 5：论文实验对齐 | 未实现 | 只有路线图和 TSP-20 开发 evaluator | 0% |
+| Stage 4：反思与跨代记忆 | 已由 `59c3357` 发布 | ADR-0004、事实/恢复底座、opt-in 摘要/检索/截断/mutation、显式 resume 与离线消融 | 冻结 V1 离线 Mock 实现 100% |
+| Stage 5：论文实验对齐 | P5 adapter 子任务由 `3842870` 实现；发布状态实时查询 | OpenAI-compatible EoH/RoCo adapter 仅经 fake transport 离线验证；无 HTTP/真实模型实验 | P5 子任务 100%；Stage 5 实验未完成 |
 | Stage 6：多智能体 EBBO | 未实现 | 只有研究分析和路线图 | 0% |
 
-以“六阶段是否具有可运行实现”粗略计数，目前完成前四阶段的既定 V1 范围，约为 4/6；
-但这不等于研究工作量完成三分之二，因为 Stage 5–6 的真实实验与方法研究明显更重。
+以“六阶段是否具有可运行实现”粗略计数，仍只完成前四阶段的既定 V1 范围，约为 4/6。
+P5 完成的是 Stage 5 的 provider 协议与离线安全底座，不是论文实验阶段本身；Stage 5–6
+的真实实验与方法研究仍明显更重。
 
 另一个必须说明的口径：相对于早期 roadmap 中更宽的 Stage 3 清单，当前约完成 70%–80%。roadmap 还提到 prompt 外置为 Jinja/YAML、上下文截断、修复重试、`no-critic`/`no-integrator` 消融和真实小预算运行；这些不在最近一次明确 Stage 3 任务范围内，且真实 API 被明确禁止，因此不是当前验收失败，而是后续候选任务。
 
@@ -335,6 +374,27 @@ status / error_type / error_message
 
 该 trace 是运行审计，不是长期记忆。runtime 和 wall-clock 可随机器调度变化；Mock 重放承诺候选内容/ID、角色顺序、分数和非时间预算一致，不承诺日志逐字节一致。
 
+### 6.6 Stage 5 P5：离线 OpenAI-compatible adapter
+
+- `src/roco_ebbo/llm/openai_compatible.py`：EoH 与 generation-local RoCo adapter、严格
+  请求/响应 schema、错误分类、版本化价格和脱敏 attempt audit。
+- `OpenAICompatibleTransport` 与 `TokenCounter` 都由调用者显式注入；仓库不提供 HTTP
+  transport，不读取 `os.environ`、`.env`、keyring、endpoint 或真实 key。
+- 每次 transport attempt 都有显式 timeout 和有限 `max_retries`；只有 timeout、
+  retryable transport、rate limit 和明确的 HTTP 5xx 可以在预算允许且 usage 结算完整时
+  重试，不做内容修复请求。
+- transport 已接受的 attempt 无论随后成功或失败都计一次 LLM call；有合法 usage 时按
+  input/output tokens 和版本化价格表结算，缺失/非法 usage、解析失败和超预算均 fail closed。
+- 请求、响应和 provider request ID 只以 hash 进入审计；固定安全错误不回显上游正文或
+  认证信息。真实模型路径要求模型匹配的版本化 token counter，字符数不能冒充 token。
+- Mock 仍是所有 CLI/smoke 默认 provider；adapter 只通过 fake transport、fake token
+  counter 和 synthetic price table 离线验证。它不实现 `MemoryLLMProvider`，Stage 4
+  memory runtime 继续使用 Mock。
+
+详细边界见 `docs/adrs/0005-offline-openai-compatible-adapter.md`。这里的“完成”只指 P5
+离线 adapter 子任务，不包括具体 HTTP/TLS/auth transport、真实 endpoint、真实 tokenizer/
+价格核验、provider smoke、模型质量或论文实验。
+
 ## 7. 当前审计结论
 
 ### 7.1 在最近明确 Stage 3 范围内通过的项目
@@ -359,7 +419,8 @@ status / error_type / error_message
 两类预算中断、非有限配置和最小化契约。剩余项属于后续耐久性或真实 provider 范围：
 
 1. 决定 trace 是否需要逐代立即落盘/原子写。目前 CLI 在 engine 完整返回后统一写文件；正常运行满足每代可序列化 trace，但进程崩溃时没有逐代耐久性。
-2. provider 是否对“已接受但抛错的调用”正确计费依赖具体 provider 实现；Mock 异常路径已有测试，真实 provider 接入时仍必须使用 fake transport 复核。
+2. P5 adapter 已用 fake transport 固化“accepted attempt 必计 call、usage 缺失 fail closed”的
+   离线规则；具体网络 SDK、远端服务和真实账单是否符合该规则仍未验证。
 3. 最大化任务尚不支持；进入实现前需要版本化 objective contract，并同步 prompt、Mock Critic、排序和测试。
 
 ### 7.3 roadmap 与当前实现的差异
@@ -371,7 +432,8 @@ status / error_type / error_message
 - roadmap 提到相邻 `+1/+2`；当前可执行规格与实现使用边界安全的相邻 `±1`，仍需 PDF 逐式复核。
 - Stage 3 本身没有上下文截断、自动修复重试或 no-role 消融开关；P3b 只为 opt-in
   memory Mock 增加确定性字符截断，不把它冒充 tokenizer。
-- 没有真实 OpenAI-compatible provider；最近 Stage 3 任务明确要求离线且禁止真实 API。
+- 已有 OpenAI-compatible adapter 的离线协议实现，但没有 HTTP transport、真实 endpoint/
+  key、真实 provider smoke 或付费请求；不得把 fake transport 测试称为真实互操作。
 - P4 只提供显式目录的 Mock memory checkpoint resume 和提交后确定性中断，不做跨
   run 自动发现或任意进程点故障注入；缓存、并行调度和容器级沙箱也未实现。
 
@@ -389,14 +451,19 @@ status / error_type / error_message
   12/12 smoke、Stage 3 T=2 18/13 smoke 与 `git diff --check` 均通过；
 - P3b 已由 `576b1dd` 发布：LTReflect/角色摘要运行时、K=5 检索、可审计 prompt 截断与
   memory-guided mutation 的显式 opt-in 接入；75 tests 与完整门禁通过；
-- P4 已由本地实现提交 `c7a1ae4` 固化：显式 `resume_smoke`/`EoHEngine.resume`、只从
+- P4 已由实现提交 `c7a1ae4` 固化：显式 `resume_smoke`/`EoHEngine.resume`、只从
   连续有效 commit 恢复、config/seed/坏 hash/gap fail-closed、提交后中断、两路径规范工件
   与哈希等价、以及 memory-off/on 的 32/22/22 对 44/28/28 消融记账；80 tests 与完整门禁
-  通过。Stage 4 冻结 V1 的离线 Mock 实现已完成；远端发布状态由实时 Git 判断。
+  通过，并由状态提交 `59c3357` 发布。Stage 4 冻结 V1 的离线 Mock 实现已完成。
 
 ### Stage 5
 
-- 真实模型 provider 和费用表；
+P5 已完成无 HTTP 实现的 OpenAI-compatible EoH/RoCo adapter，以及 fake transport、
+fake token counter 和 synthetic price table 的离线验证；这只是 Stage 5 基础设施子任务。
+以下内容仍未实现：
+
+- 具体 HTTP/TLS/auth transport、真实 endpoint/key 注入、真实 provider 兼容性
+  smoke、模型 tokenizer/价格核验或任何付费调用；
 - 论文 TSP-50/TSP-100/TSP-200 数据与训练/测试协议；
 - white-box/black-box prompt 两套实验；
 - ReEvo、EoH 等预算公平基线；
@@ -419,16 +486,17 @@ P0  Stage 3 最终审计/小范围加固（已完成）
   -> P2  Stage 4 可执行规格和 ADR-0004（已完成、已提交并发布）
   -> P3a memory schema/trace 转换/segment store/commit-last/checkpoint 恢复底座（已发布）
   -> P3b 角色摘要/K=5 检索/可审计 prompt 截断/memory mutation 接入（已发布）
-  -> P4  engine 级中断恢复、不中断/恢复端到端等价、memory/no-memory 消融（已验证并形成实现提交）
-  -> P5  OpenAI-compatible provider，仅以 fake transport 离线验证（下一任务；禁止真实 API）
-  -> P6  Stage 5 TSP 论文实验对齐
+  -> P4  engine 级中断恢复、不中断/恢复端到端等价、memory/no-memory 消融（已发布）
+  -> P5  OpenAI-compatible adapter，仅以 fake transport 离线验证（`3842870`；发布状态实时查询）
+  -> P6  Stage 5 TSP 论文实验协议与离线 dry-run（下一任务；仍不授权真实 API）
   -> P7  其他 COP 和统计复现
   -> P8  Stage 6 EBBO 设计规格
   -> P9  EBBO 最小基线和角色控制层
 ```
 
-不要把 P3a、P3b、P5 和 P6 合成一次任务：事实/恢复底座、运行时记忆接入、真实 API
-风险和论文实验协议应该分别审查。
+不要在后续返工中把 P3a、P3b、P5 和 P6 合成一次任务：事实/恢复底座、运行时记忆、
+provider 离线协议和论文实验协议应该分别审查。具体 HTTP transport、真实凭据、provider
+smoke 和付费实验也不由 P5 或 P6 自动授权，必须另行明确批准和设置硬预算。
 
 ## 10. 通用任务提示词模板
 
@@ -558,16 +626,16 @@ Ruff、mypy、doctor、两个既有 smoke 和 `git diff --check`。P3a 不应新
 generated candidates 或 valid evaluations。
 ```
 
-### 11.5 Prompt E：真实 provider 独立接入
+### 11.5 Prompt E：P5 离线 OpenAI-compatible adapter（已完成，保留作回归模板）
 
-此任务必须晚于 Mock + memory 路径稳定，并由用户明确授权。首次任务仍应禁止真实付费调用：
+此子任务晚于 Mock + memory 路径稳定，只验证 adapter 边界，不授权真实网络或付费调用：
 
 ```text
-为现有 LLMProvider/RoleLLMProvider 设计并实现 OpenAI-compatible adapter，但本任务不得发起真实网络请求、不得读取或输出真实密钥、不得产生费用。
+为现有 LLMProvider/RoleLLMProvider 设计并实现 OpenAI-compatible adapter，但本任务不得实现或发起 HTTP/network transport，不得读取 os.environ、.env、keyring，不得读取或输出真实密钥，也不得产生费用。Stage 4 memory provider 继续使用 Mock。
 
-使用依赖注入和 fake transport 测试：请求 schema、角色温度、timeout、重试上限、JSON 解析、token/费用记账、错误分类、模型/价格表版本、上下文截断和敏感字段脱敏。Mock 仍是默认 provider，CI 必须完全离线。没有显式 `provider: openai-compatible` 和环境变量时不得初始化网络客户端。
+使用显式依赖注入、fake transport、模型匹配的 fake token counter 和 synthetic 价格表测试：请求 schema、角色温度、timeout、重试上限、accepted-then-error 结算、JSON/schema、usage、token/费用记账、错误分类、版本、上下文决定和敏感字段脱敏。Mock 仍是默认 provider，CI 必须完全离线；仓库不提供可被默认或显式配置初始化的 HTTP 客户端。
 
-更新安全文档和独立配置示例，但 `.env` 与真实响应不得提交。保持所有现有 smoke 精确回归。不要实际调用 API、不要 commit/push。
+新增 ADR 和无 endpoint/key 的独立示例配置，但 `.env`、真实响应与真实价格不得提交。保持所有现有 smoke 精确回归。离线通过不等于真实 provider 互操作、模型实验或论文复现。不要实际调用 API、不要 commit/push。
 ```
 
 ### 11.6 Prompt F：Stage 5 TSP 复现实验准备
@@ -607,8 +675,17 @@ generated candidates 或 valid evaluations。
 
 ## 13. 当前最推荐的下一条提示词
 
-Stage 4 设计、P3a 与 P3b 已发布；P4 已由本地实现提交 `c7a1ae4` 固化，实现 engine 级
-中断恢复、不中断/恢复端到端规范哈希等价和 memory/no-memory 消融，并通过 80 tests、
-Ruff、mypy、doctor、12/12、18/13 与 44/28 三个 smoke。发布状态必须以实时 Git 核验。
-Stage 4 冻结 V1 的离线 Mock 实现已完成。下一任务 P5 只实现 OpenAI-compatible provider
-并用 fake transport 离线验证；禁止真实 API 调用，不得声称真实模型实验或论文复现完成。
+Stage 4 设计、P3a/P3b 与 P4 均已发布，发布基线为 `59c3357`。P4 实现提交
+`c7a1ae4` 已验证 engine 级提交后中断恢复、不中断/恢复端到端规范哈希等价和
+memory/no-memory 消融，并通过当时的 80 tests、Ruff、mypy、doctor、12/12、18/13 与
+44/28 三个 smoke。
+
+P5 OpenAI-compatible adapter 离线子任务已由
+`38428700d8f272f8107e8cd042f5fdec24d3e33d` 实现：
+Mock 仍为默认，EoH/RoCo adapter 只以 fake transport 验证，Stage 4 memory 仍为 Mock；
+仓库没有 HTTP transport，也没有真实 endpoint/key、provider smoke、真实模型或费用。
+这不代表整个 Stage 5 完成；当前 HEAD、upstream 与发布状态仍须用实时 Git 核验。
+
+下一推荐任务是 11.6 的 P6 TSP 论文实验协议与 Mock/fake dry-run。该任务仍不得发起真实
+API 或付费实验，也不得顺带实现其他 COP/EBBO。若要增加具体 HTTP transport、认证、
+真实 tokenizer/价格表或 provider smoke，必须作为独立任务另行授权并设置明确硬预算。
