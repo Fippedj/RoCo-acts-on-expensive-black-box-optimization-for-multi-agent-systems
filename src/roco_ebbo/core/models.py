@@ -41,6 +41,46 @@ class Candidate:
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), allow_nan=False, sort_keys=True)
 
+    def to_snapshot(self) -> dict[str, Any]:
+        snapshot = self.to_dict()
+        _require_json_safe(snapshot)
+        return snapshot
+
+    @classmethod
+    def from_snapshot(cls, value: dict[str, Any]) -> Candidate:
+        """Restore a candidate from the portable checkpoint representation."""
+
+        _require_exact_keys(
+            value,
+            {"id", "description", "code", "parents", "operator", "generation", "score", "metadata"},
+            "candidate snapshot",
+        )
+        if (
+            not all(
+                isinstance(value[name], str) for name in ("id", "description", "code", "operator")
+            )
+            or type(value["generation"]) is not int
+            or value["generation"] < 0
+            or not isinstance(value["parents"], list)
+            or not all(isinstance(parent, str) for parent in value["parents"])
+            or not isinstance(value["metadata"], dict)
+        ):
+            raise ValueError("candidate snapshot has invalid field types")
+        score = value["score"]
+        if score is not None and (type(score) not in (int, float) or not math.isfinite(score)):
+            raise ValueError("candidate score must be a finite number or null")
+        _require_json_safe(value["metadata"])
+        return cls(
+            id=value["id"],
+            description=value["description"],
+            code=value["code"],
+            parents=tuple(value["parents"]),
+            operator=value["operator"],
+            generation=value["generation"],
+            score=None if score is None else float(score),
+            metadata=value["metadata"],
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class EvaluationResult:
@@ -245,6 +285,76 @@ class BudgetLedger:
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), allow_nan=False, sort_keys=True)
 
+    def to_snapshot(self) -> dict[str, Any]:
+        """Return only constructor fields, excluding derived report values."""
+
+        return {
+            "llm_calls": self.llm_calls,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "generated_candidates": self.generated_candidates,
+            "valid_evals": self.valid_evals,
+            "cost": self.cost,
+            "wall_time": self.wall_time,
+            "cost_currency": self.cost_currency,
+            "max_llm_calls": self.max_llm_calls,
+            "max_tokens": self.max_tokens,
+            "max_generated_candidates": self.max_generated_candidates,
+            "max_valid_evals": self.max_valid_evals,
+            "max_cost": self.max_cost,
+            "max_wall_time": self.max_wall_time,
+        }
+
+    @classmethod
+    def from_snapshot(cls, value: dict[str, Any]) -> BudgetLedger:
+        """Restore a ledger without accepting report-only or non-JSON state."""
+
+        fields = {
+            "llm_calls",
+            "input_tokens",
+            "output_tokens",
+            "generated_candidates",
+            "valid_evals",
+            "cost",
+            "wall_time",
+            "cost_currency",
+            "max_llm_calls",
+            "max_tokens",
+            "max_generated_candidates",
+            "max_valid_evals",
+            "max_cost",
+            "max_wall_time",
+        }
+        _require_exact_keys(value, fields, "ledger snapshot")
+        _require_json_safe(value)
+        integer_fields = {
+            "llm_calls",
+            "input_tokens",
+            "output_tokens",
+            "generated_candidates",
+            "valid_evals",
+        }
+        integer_limit_fields = {
+            "max_llm_calls",
+            "max_tokens",
+            "max_generated_candidates",
+            "max_valid_evals",
+        }
+        if any(type(value[name]) is not int for name in integer_fields):
+            raise ValueError("ledger counters must be integers")
+        if any(
+            value[name] is not None and type(value[name]) is not int
+            for name in integer_limit_fields
+        ):
+            raise ValueError("ledger integer limits must be integers or null")
+        if not isinstance(value["cost_currency"], str) or not value["cost_currency"]:
+            raise ValueError("ledger cost_currency must be a non-empty string")
+        for name in ("cost", "wall_time", "max_cost", "max_wall_time"):
+            item = value[name]
+            if item is not None and type(item) not in (int, float):
+                raise ValueError(f"ledger {name} must be a number or null")
+        return cls(**value)
+
 
 @dataclass(frozen=True, slots=True)
 class RunManifest:
@@ -271,3 +381,30 @@ class RunManifest:
     def write_json(self, path: str | Path) -> None:
         output_path = Path(path)
         output_path.write_text(f"{self.to_json()}\n", encoding="utf-8")
+
+
+def _require_exact_keys(value: dict[str, Any], expected: set[str], name: str) -> None:
+    if set(value) != expected:
+        raise ValueError(f"{name} keys do not match its schema")
+
+
+def _require_json_safe(value: Any) -> None:
+    """Reject non-JSON values and non-finite numbers at persistence boundaries."""
+
+    if value is None or isinstance(value, str) or type(value) is bool or type(value) is int:
+        return
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError("snapshot contains a non-finite number")
+        return
+    if isinstance(value, list):
+        for item in value:
+            _require_json_safe(item)
+        return
+    if isinstance(value, dict):
+        if not all(isinstance(key, str) for key in value):
+            raise ValueError("snapshot object keys must be strings")
+        for item in value.values():
+            _require_json_safe(item)
+        return
+    raise ValueError(f"snapshot contains non-JSON value: {type(value).__name__}")

@@ -77,6 +77,32 @@ class MockLLMProvider:
         self.seed = seed
         self._rng = random.Random(seed)
         self._request_index = 0
+        self._rng_draws = 0
+
+    def to_snapshot(self) -> dict[str, int]:
+        """Portable replay cursor; deliberately never exposes ``Random.getstate``."""
+
+        return {
+            "schema_version": 1,
+            "seed": self.seed,
+            "request_index": self._request_index,
+            "rng_draws": self._rng_draws,
+        }
+
+    @classmethod
+    def from_snapshot(cls, value: dict[str, int]) -> MockLLMProvider:
+        if set(value) != {"schema_version", "seed", "request_index", "rng_draws"}:
+            raise ValueError("mock provider snapshot keys do not match its schema")
+        if any(type(item) is not int for item in value.values()) or value["schema_version"] != 1:
+            raise ValueError("mock provider snapshot has invalid values")
+        if value["request_index"] < 0 or value["rng_draws"] < 0:
+            raise ValueError("mock provider snapshot counters must be non-negative")
+        provider = cls(value["seed"])
+        for _ in range(value["rng_draws"]):
+            provider._rng.randrange(10_000)
+        provider._request_index = value["request_index"]
+        provider._rng_draws = value["rng_draws"]
+        return provider
 
     def generate(
         self,
@@ -87,6 +113,7 @@ class MockLLMProvider:
     ) -> GeneratedHeuristic:
         request_index = self._request_index
         start_hint = self._rng.randrange(10_000)
+        self._rng_draws += 1
         code = _render_code(operator, start_hint)
         parent_ids = ",".join(parent.id for parent in parents) or "none"
         description = (
@@ -136,6 +163,7 @@ class MockLLMProvider:
             return RoleResponse(request_index=request_index, feedback=feedback)
 
         start_hint = self._rng.randrange(10_000)
+        self._rng_draws += 1
         code = _render_role_code(request.role, start_hint)
         parent_ids = ",".join(candidate.id for candidate in request.candidates) or "none"
         description = (

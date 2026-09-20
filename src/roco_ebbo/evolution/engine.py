@@ -66,6 +66,27 @@ class Population:
             "candidates": [candidate.to_dict() for candidate in self.candidates],
         }
 
+    def to_snapshot(self) -> dict[str, Any]:
+        return {
+            "size": self.size,
+            "minimize": self.minimize,
+            "candidates": [candidate.to_snapshot() for candidate in self.candidates],
+        }
+
+    @classmethod
+    def from_snapshot(cls, value: dict[str, Any]) -> Population:
+        if set(value) != {"size", "minimize", "candidates"}:
+            raise ValueError("population snapshot keys do not match its schema")
+        if type(value["size"]) is not int or value["size"] < 2:
+            raise ValueError("population snapshot size must be an integer of at least 2")
+        if type(value["minimize"]) is not bool or not isinstance(value["candidates"], list):
+            raise ValueError("population snapshot has invalid field types")
+        return cls(
+            candidates=[Candidate.from_snapshot(item) for item in value["candidates"]],
+            size=value["size"],
+            minimize=value["minimize"],
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class EoHRunResult:

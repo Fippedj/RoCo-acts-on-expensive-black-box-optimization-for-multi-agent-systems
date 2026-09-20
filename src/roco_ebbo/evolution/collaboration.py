@@ -158,7 +158,46 @@ class RoCoCollaborator:
         self.minimize = minimize
         self.sampling_seed = seed
         self._rng = random.Random(seed)
+        self._sampling_population_sizes: list[int] = []
         self._event_sequence = 0
+
+    def to_snapshot(self) -> dict[str, Any]:
+        """Return a JSON-safe logical cursor instead of private RNG state."""
+
+        return {
+            "schema_version": "roco-collaborator-state-v1",
+            "sampling_seed": self.sampling_seed,
+            "sampling_population_sizes": list(self._sampling_population_sizes),
+            "event_sequence": self._event_sequence,
+        }
+
+    def restore_snapshot(self, value: dict[str, Any]) -> None:
+        """Restore deterministic sampling by replaying its public logical operations."""
+
+        if set(value) != {
+            "schema_version",
+            "sampling_seed",
+            "sampling_population_sizes",
+            "event_sequence",
+        }:
+            raise ValueError("collaborator snapshot keys do not match its schema")
+        sizes = value["sampling_population_sizes"]
+        if (
+            value["schema_version"] != "roco-collaborator-state-v1"
+            or type(value["sampling_seed"]) is not int
+            or type(value["event_sequence"]) is not int
+            or value["event_sequence"] < 0
+            or not isinstance(sizes, list)
+            or any(type(size) is not int or size < 2 for size in sizes)
+        ):
+            raise ValueError("collaborator snapshot has invalid values")
+        self.sampling_seed = value["sampling_seed"]
+        self._rng = random.Random(self.sampling_seed)
+        self._sampling_population_sizes = []
+        for population_size in sizes:
+            self._draw_elite_pair(population_size)
+            self._sampling_population_sizes.append(population_size)
+        self._event_sequence = value["event_sequence"]
 
     def run(self, population: list[Candidate], generation: int) -> CollaborationOutcome:
         """Execute a complete collaboration while converting role failures into trace data."""
@@ -435,6 +474,11 @@ class RoCoCollaborator:
         )
 
     def _sample_elite_pair(self, population_size: int) -> tuple[int, int, tuple[float, ...]]:
+        result = self._draw_elite_pair(population_size)
+        self._sampling_population_sizes.append(population_size)
+        return result
+
+    def _draw_elite_pair(self, population_size: int) -> tuple[int, int, tuple[float, ...]]:
         weights = [
             1.0 / ((rank + 1) ** self.elite_sampling_power) for rank in range(population_size)
         ]
