@@ -2,7 +2,9 @@
 
 Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic Heuristic Design**, followed by a migration toward multi-agent expensive black-box optimization (EBBO).
 
-This repository contains a deterministic Stage 3 engineering baseline: the Stage 2 EoH path plus an offline four-role RoCo collaboration state machine. It does **not** claim to be the authors' official implementation or a completed paper reproduction; long-term reflection and cross-generation memory remain Stage 4 work.
+This repository contains deterministic Stage 2/3 baselines plus an uncommitted, opt-in Stage 4 P3b
+offline memory draft. It does **not** claim to be the authors' official implementation or a completed
+paper reproduction; interrupted-run recovery equivalence and ablation acceptance remain P4 work.
 
 ## Recommended local setup
 
@@ -18,6 +20,7 @@ pytest
 python -m roco_ebbo doctor
 python -m roco_ebbo smoke --config configs/smoke/tsp_mock.yaml
 python -m roco_ebbo smoke --config configs/smoke/tsp_roco_mock.yaml
+python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
 ```
 
 Open the folder from WSL with VS Code:
@@ -35,11 +38,13 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `docs/START_HERE.md` | First-week implementation order and handoff instructions |
 | `docs/AI_PROJECT_STATE_AND_PROMPT_GUIDE.md` | AI-readable repository state, audit findings, roadmap status, and reusable task prompts |
 | `docs/adrs/0003-stage3-roco-collaboration.md` | Stage 3 state machine, failure, trace, and memory-boundary decisions |
+| `docs/adrs/0004-stage4-reflection-memory-design.md` | Stage 4 memory, retrieval, truncation, commit, and recovery decisions |
 | `docs/RoCo_reproduction_and_EBBO_roadmap.md` | Six-stage reproduction and migration plan |
 | `docs/paper/` | Source-grounded reading notes and paper-gap analysis |
 | `configs/paper_defaults.yaml` | Paper-aligned settings, annotated with non-disclosed items |
 | `configs/smoke/tsp_mock.yaml` | Unchanged Stage 2 deterministic EoH regression configuration |
 | `configs/smoke/tsp_roco_mock.yaml` | Deterministic Stage 3 four-role collaboration configuration |
+| `configs/smoke/tsp_memory_mock.yaml` | Opt-in two-generation Stage 4 P3b offline memory configuration |
 | `src/roco_ebbo/` | RoCo / EBBO implementation package |
 | `tests/` | Unit, integration, and regression tests |
 | `scripts/` | WSL bootstrap and later experiment entry points |
@@ -89,6 +94,19 @@ The Mock provider is role-aware, seeded, offline, and makes no network or creden
 Each RoCo run writes `collaboration_trace.jsonl` beneath its run directory, one JSON object per generation. It records the sampled pair, ranks and sampling power, requested/completed rounds, ordered role events, inputs and outputs, evaluation results, budget snapshots, failures, and selected candidate IDs. This is an execution trace only: Stage 3 does **not** implement LTReflect, cross-generation retrieval, memory-guided mutation, real model providers, paper-scale evaluators, or EBBO.
 
 See `docs/adrs/0003-stage3-roco-collaboration.md` for the prompt contracts, failure degradation, and trace schema.
+
+## Stage 4 memory runtime draft
+
+The uncommitted P3b worktree adds a separate `tsp_memory_mock.yaml` smoke preset. Memory remains
+explicitly opt-in: the legacy Stage 2 and Stage 3 configs do not construct a memory runtime. The new
+offline path summarizes Explorer/Exploiter/Integrator facts, retrieves at most five prior committed
+role-scoped events with a 3/2 balance, audits deterministic character truncation, and evaluates one
+memory-guided candidate per role and configured elite before the existing unified Top-N.
+
+For its fixed two generations, `T=2`, and `elite_count=1`, the all-valid Mock budget is 44 LLM calls
+and 28 valid evaluations. Each completed generation is published through the P3a immutable segment,
+summary, checkpoint, and commit-last store. This draft does not add a real provider, network access,
+cache, embeddings, new benchmarks, EBBO, or P4 interrupted-run resume equivalence.
 
 ## Original repository purpose
 

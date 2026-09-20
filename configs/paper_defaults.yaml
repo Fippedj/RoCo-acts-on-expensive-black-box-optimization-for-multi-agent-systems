@@ -30,7 +30,9 @@ evolution:
 memory:
   # Stage 4 engineering defaults: the paper does not disclose the storage,
   # retrieval balance, mutation multiplicity, or recovery protocol. These
-  # fields document ADR-0004 and are not a real-provider entry point yet.
+  # fields document ADR-0004 and are not a real-provider entry point. The
+  # P3b Mock smoke opts in separately; this paper preset remains disabled.
+  enabled: false
   backend: generation_jsonl_segments
   recent_events: 5
   success_slots: 3

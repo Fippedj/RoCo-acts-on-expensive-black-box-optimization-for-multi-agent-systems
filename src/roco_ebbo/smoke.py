@@ -1,8 +1,9 @@
-"""Configuration loading for deterministic Stage 2 EoH and Stage 3 RoCo smoke runs."""
+"""Configuration loading for deterministic Stage 2--4 offline smoke runs."""
 
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,6 +16,7 @@ from roco_ebbo.core import BudgetLedger
 from roco_ebbo.evaluation import TSPCodeEvaluator
 from roco_ebbo.evolution import EoHEngine, EoHRunResult, RoCoCollaborator
 from roco_ebbo.llm import ROLE_TEMPERATURES, MockLLMProvider, RoCoRole
+from roco_ebbo.memory import GenerationMemoryStore, MemoryRuntime, MemoryRuntimeConfig
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +38,12 @@ class SmokeSettings:
     nodes: int
     instances: int
     evaluator_timeout_seconds: float
+    memory_enabled: bool
+    memory_recent_events: int
+    memory_success_slots: int
+    memory_failure_slots: int
+    memory_elite_count: int
+    memory_max_context_characters: int
     config_snapshot: dict[str, Any]
 
 
@@ -46,6 +54,7 @@ class SmokeRun:
     provider_seed: int
     benchmark_seed: int
     collaboration_seed: int | None
+    memory_root: Path | None = None
 
 
 def load_smoke_settings(path: str | Path) -> SmokeSettings:
@@ -59,6 +68,9 @@ def load_smoke_settings(path: str | Path) -> SmokeSettings:
         llm = _mapping(raw, "llm")
         evolution = _mapping(raw, "evolution")
         benchmark = _mapping(raw, "benchmark")
+        memory = raw.get("memory", {})
+        if not isinstance(memory, dict):
+            raise TypeError("memory must be a mapping")
         configured_temperatures = llm.get("temperatures", {})
         if not isinstance(configured_temperatures, dict):
             raise TypeError("llm.temperatures must be a mapping")
@@ -84,6 +96,12 @@ def load_smoke_settings(path: str | Path) -> SmokeSettings:
             nodes=int(benchmark["nodes"]),
             instances=int(benchmark["instances"]),
             evaluator_timeout_seconds=float(benchmark["evaluator_timeout_seconds"]),
+            memory_enabled=_strict_bool(memory.get("enabled", False), "memory.enabled"),
+            memory_recent_events=int(memory.get("recent_events", 5)),
+            memory_success_slots=int(memory.get("success_slots", 3)),
+            memory_failure_slots=int(memory.get("failure_slots", 2)),
+            memory_elite_count=int(memory.get("elite_count", 1)),
+            memory_max_context_characters=int(memory.get("max_context_characters", 16_000)),
             config_snapshot=raw,
         )
     except (KeyError, TypeError, ValueError) as exc:
@@ -92,7 +110,12 @@ def load_smoke_settings(path: str | Path) -> SmokeSettings:
     return settings
 
 
-def run_smoke(settings: SmokeSettings) -> SmokeRun:
+def run_smoke(
+    settings: SmokeSettings,
+    *,
+    memory_root: str | Path | None = None,
+    run_id: str = "offline-memory-smoke",
+) -> SmokeRun:
     provider_seed = _derive_seed(settings.seed, "mock-provider")
     benchmark_seed = _derive_seed(settings.seed, "tsp-instance")
     collaboration_seed = (
@@ -123,6 +146,40 @@ def run_smoke(settings: SmokeSettings) -> SmokeRun:
             temperatures=settings.role_temperatures,
             minimize=True,
         )
+    resolved_memory_root: Path | None = None
+    memory_runtime = None
+    if settings.memory_enabled:
+        if memory_root is None:
+            raise ValueError("memory-enabled smoke runs require an explicit memory_root")
+        assert collaborator is not None
+        resolved_memory_root = Path(memory_root)
+        memory_runtime = MemoryRuntime(
+            provider=provider,
+            evaluator=evaluator,
+            distance_matrix=distance_matrix,
+            ledger=ledger,
+            store=GenerationMemoryStore(resolved_memory_root),
+            collaborator=collaborator,
+            run_id=run_id,
+            benchmark=settings.benchmark_name,
+            objective=settings.objective,
+            config_hash=hashlib.sha256(
+                json.dumps(
+                    settings.config_snapshot,
+                    allow_nan=False,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ).encode("utf-8")
+            ).hexdigest(),
+            config=MemoryRuntimeConfig(
+                recent_events=settings.memory_recent_events,
+                success_slots=settings.memory_success_slots,
+                failure_slots=settings.memory_failure_slots,
+                elite_count=settings.memory_elite_count,
+                max_context_characters=settings.memory_max_context_characters,
+            ),
+        )
     engine = EoHEngine(
         provider=provider,
         evaluator=evaluator,
@@ -133,6 +190,7 @@ def run_smoke(settings: SmokeSettings) -> SmokeRun:
         candidates_per_operator=settings.candidates_per_operator,
         minimize=True,
         collaborator=collaborator,
+        memory_runtime=memory_runtime,
     )
     return SmokeRun(
         result=engine.run(),
@@ -140,6 +198,7 @@ def run_smoke(settings: SmokeSettings) -> SmokeRun:
         provider_seed=provider_seed,
         benchmark_seed=benchmark_seed,
         collaboration_seed=collaboration_seed,
+        memory_root=resolved_memory_root,
     )
 
 
@@ -154,6 +213,12 @@ def _optional_int(value: Any) -> int | None:
     return None if value is None else int(value)
 
 
+def _strict_bool(value: Any, name: str) -> bool:
+    if type(value) is not bool:
+        raise TypeError(f"{name} must be a boolean")
+    return value
+
+
 def _validate_settings(settings: SmokeSettings) -> None:
     if settings.objective != "minimize":
         raise ValueError("smoke runs support only objective=minimize")
@@ -161,6 +226,15 @@ def _validate_settings(settings: SmokeSettings) -> None:
         raise ValueError("smoke runs support only the offline mock provider")
     if settings.mode not in {"eoh", "roco"}:
         raise ValueError("evolution.mode must be eoh or roco")
+    if settings.memory_enabled and settings.mode != "roco":
+        raise ValueError("memory runtime requires evolution.mode=roco")
+    MemoryRuntimeConfig(
+        recent_events=settings.memory_recent_events,
+        success_slots=settings.memory_success_slots,
+        failure_slots=settings.memory_failure_slots,
+        elite_count=settings.memory_elite_count,
+        max_context_characters=settings.memory_max_context_characters,
+    )
     if settings.population_size < 2:
         raise ValueError("population_size must be at least 2")
     if settings.generations < 1:

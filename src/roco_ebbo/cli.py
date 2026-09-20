@@ -54,11 +54,19 @@ def _run_smoke_command(config_path: Path, runs_dir: Path) -> None:
     events_path = run_directory / "events.jsonl"
     _append_event(events_path, {"event": "run_started", "run_id": run_id})
 
-    smoke_run = run_smoke(settings)
+    smoke_run = run_smoke(
+        settings,
+        memory_root=(run_directory / "memory") if settings.memory_enabled else None,
+        run_id=run_id,
+    )
     trace_path = run_directory / "collaboration_trace.jsonl"
     if smoke_run.result.collaboration_traces:
-        for trace in smoke_run.result.collaboration_traces:
-            _append_event(trace_path, trace.to_dict())
+        for collaboration_trace in smoke_run.result.collaboration_traces:
+            _append_event(trace_path, collaboration_trace.to_dict())
+    memory_trace_path = run_directory / "memory_runtime_trace.jsonl"
+    if smoke_run.result.memory_traces:
+        for memory_trace in smoke_run.result.memory_traces:
+            _append_event(memory_trace_path, memory_trace.to_dict())
     budget_snapshot = smoke_run.ledger.to_dict()
     resolved_seeds: dict[str, int] = {
         "mock_provider": smoke_run.provider_seed,
@@ -75,6 +83,14 @@ def _run_smoke_command(config_path: Path, runs_dir: Path) -> None:
             "temperatures": {
                 role.value: value for role, value in settings.role_temperatures.items()
             },
+        }
+    if settings.memory_enabled:
+        config_snapshot["resolved_stage4_memory"] = {
+            "recent_events": settings.memory_recent_events,
+            "success_slots": settings.memory_success_slots,
+            "failure_slots": settings.memory_failure_slots,
+            "elite_count": settings.memory_elite_count,
+            "max_context_characters": settings.memory_max_context_characters,
         }
     manifest = RunManifest(
         seed=settings.seed,
@@ -98,12 +114,22 @@ def _run_smoke_command(config_path: Path, runs_dir: Path) -> None:
         "budget": budget_snapshot,
         "mode": settings.mode,
         "scope": (
-            "stage3-generation-local-roco-mock"
-            if settings.mode == "roco"
-            else "stage2-minimal-eoh-mock-only"
+            "stage4-offline-reflection-memory-mock"
+            if settings.memory_enabled
+            else (
+                "stage3-generation-local-roco-mock"
+                if settings.mode == "roco"
+                else "stage2-minimal-eoh-mock-only"
+            )
         ),
         "collaboration_trace": (trace_path.name if smoke_run.result.collaboration_traces else None),
         "collaboration_generations": len(smoke_run.result.collaboration_traces),
+        "memory_enabled": settings.memory_enabled,
+        "memory_runtime_trace": (
+            memory_trace_path.name if smoke_run.result.memory_traces else None
+        ),
+        "memory_generations": len(smoke_run.result.memory_traces),
+        "memory_root": "memory" if smoke_run.result.memory_traces else None,
     }
     if settings.mode == "eoh":
         summary["stage2_scope"] = "minimal-eoh-mock-only"
@@ -120,6 +146,7 @@ def _run_smoke_command(config_path: Path, runs_dir: Path) -> None:
             "budget": budget_snapshot,
             "mode": settings.mode,
             "collaboration_generations": len(smoke_run.result.collaboration_traces),
+            "memory_generations": len(smoke_run.result.memory_traces),
         },
     )
 
@@ -131,6 +158,9 @@ def _run_smoke_command(config_path: Path, runs_dir: Path) -> None:
     print(f"mode={settings.mode}")
     if smoke_run.result.collaboration_traces:
         print(f"collaboration_trace={trace_path}")
+    if smoke_run.result.memory_traces:
+        print(f"memory_runtime_trace={memory_trace_path}")
+        print(f"memory_root={run_directory / 'memory'}")
 
 
 def _new_run_id(seed: int) -> str:

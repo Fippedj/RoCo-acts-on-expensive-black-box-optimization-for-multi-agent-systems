@@ -7,7 +7,7 @@ import json
 import math
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from roco_ebbo.benchmarks import DistanceMatrix
 from roco_ebbo.core import BudgetExceededError, BudgetLedger, Candidate
@@ -15,6 +15,9 @@ from roco_ebbo.evaluation import TSPCodeEvaluator
 from roco_ebbo.evolution.collaboration import CollaborationTrace, RoCoCollaborator
 from roco_ebbo.evolution.operators import EOH_OPERATORS, EoHOperator
 from roco_ebbo.llm import LLMProvider
+
+if TYPE_CHECKING:
+    from roco_ebbo.memory.runtime import MemoryGenerationTrace, MemoryRuntime
 
 
 @dataclass(slots=True)
@@ -96,6 +99,7 @@ class EoHRunResult:
     generations_completed: int
     stopped_on_budget: bool
     collaboration_traces: tuple[CollaborationTrace, ...] = ()
+    memory_traces: tuple[MemoryGenerationTrace, ...] = ()
 
 
 class EoHEngine:
@@ -113,6 +117,7 @@ class EoHEngine:
         candidates_per_operator: int = 1,
         minimize: bool = True,
         collaborator: RoCoCollaborator | None = None,
+        memory_runtime: MemoryRuntime | None = None,
     ) -> None:
         if population_size < 2:
             raise ValueError("population_size must be at least 2")
@@ -129,9 +134,13 @@ class EoHEngine:
         self.candidates_per_operator = candidates_per_operator
         self.minimize = minimize
         self.collaborator = collaborator
+        if memory_runtime is not None and collaborator is None:
+            raise ValueError("memory runtime requires the Stage 3 collaboration path")
+        self.memory_runtime = memory_runtime
         self._started = 0.0
         self._all_candidates: list[Candidate] = []
         self._collaboration_traces: list[CollaborationTrace] = []
+        self._memory_traces: list[MemoryGenerationTrace] = []
 
     def run(self) -> EoHRunResult:
         self._started = time.perf_counter()
@@ -171,12 +180,23 @@ class EoHEngine:
                     for _ in range(self.candidates_per_operator):
                         offspring.append(self._produce(operator, generation, parents))
                 collaboration_stopped = False
+                memory_stopped = False
+                memory_trace: MemoryGenerationTrace | None = None
                 if self.collaborator is not None:
                     outcome = self.collaborator.run(population.candidates, generation)
                     offspring.extend(outcome.candidates)
                     self._all_candidates.extend(outcome.candidates)
                     self._collaboration_traces.append(outcome.trace)
                     collaboration_stopped = outcome.stopped_on_budget
+                    if self.memory_runtime is not None:
+                        memory_trace = self.memory_runtime.prepare_generation(
+                            outcome.trace,
+                            [*population.candidates, *offspring],
+                        )
+                        offspring.extend(memory_trace.mutation_candidates)
+                        self._all_candidates.extend(memory_trace.mutation_candidates)
+                        self._memory_traces.append(memory_trace)
+                        memory_stopped = memory_trace.stopped_on_budget
                 population = Population.select_top_n(
                     [*population.candidates, *offspring],
                     self.population_size,
@@ -186,8 +206,16 @@ class EoHEngine:
                     self._collaboration_traces[-1].selected_candidate_ids = tuple(
                         candidate.id for candidate in population.candidates
                     )
+                if memory_trace is not None:
+                    assert self.memory_runtime is not None
+                    self.memory_runtime.commit_generation(
+                        memory_trace,
+                        self._collaboration_traces[-1],
+                        tuple(candidate.id for candidate in population.candidates),
+                        population,
+                    )
                 generations_completed = generation
-                if collaboration_stopped:
+                if collaboration_stopped or memory_stopped:
                     stopped_on_budget = True
                     break
         except BudgetExceededError:
@@ -206,6 +234,7 @@ class EoHEngine:
             generations_completed=generations_completed,
             stopped_on_budget=stopped_on_budget,
             collaboration_traces=tuple(self._collaboration_traces),
+            memory_traces=tuple(self._memory_traces),
         )
 
     def _produce(

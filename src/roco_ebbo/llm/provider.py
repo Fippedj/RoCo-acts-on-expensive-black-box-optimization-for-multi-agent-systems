@@ -28,7 +28,7 @@ class RoleRequest:
     """Complete input envelope for one role call."""
 
     role: RoCoRole
-    action: Literal["initial_compare", "propose", "compare", "integrate"]
+    action: Literal["initial_compare", "propose", "compare", "integrate", "memory_mutation"]
     generation: int
     round_index: int
     target_branch: Literal["explorer", "exploiter", "both"]
@@ -46,6 +46,40 @@ class RoleResponse:
     candidate: GeneratedHeuristic | None = None
     feedback: str | None = None
     metadata: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class MemorySummaryRequest:
+    """Strict JSON-data envelope for one role-specific LTReflect call."""
+
+    role: RoCoRole
+    generation: int
+    prompt: str
+    previous_summary: dict[str, Any]
+    current_events: tuple[dict[str, Any], ...]
+    peer_summaries: tuple[dict[str, Any], ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class MemorySummaryResponse:
+    """Structured LTReflect output before provenance is attached by the runtime."""
+
+    request_index: int
+    useful_strategies: tuple[str, ...]
+    failure_patterns: tuple[str, ...]
+    applicability_conditions: tuple[str, ...]
+    avoid_patterns: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MemoryMutationRequest:
+    """One memory-guided mutation request with an already bounded prompt."""
+
+    role: RoCoRole
+    generation: int
+    elite: Candidate
+    prompt: str
+    temperature: float
 
 
 @runtime_checkable
@@ -68,6 +102,21 @@ class RoleLLMProvider(Protocol):
 
     def generate_role(self, request: RoleRequest, ledger: BudgetLedger) -> RoleResponse:
         """Execute one role contract and account for the call."""
+
+
+@runtime_checkable
+class MemoryLLMProvider(Protocol):
+    """Offline Stage 4 summary and memory-mutation provider capability."""
+
+    def summarize_memory(
+        self, request: MemorySummaryRequest, ledger: BudgetLedger
+    ) -> MemorySummaryResponse:
+        """Return one strict role summary and account for only LLM usage."""
+
+    def generate_memory_mutation(
+        self, request: MemoryMutationRequest, ledger: BudgetLedger
+    ) -> RoleResponse:
+        """Return exactly one candidate-shaped response and account for the call."""
 
 
 class MockLLMProvider:
@@ -180,6 +229,70 @@ class MockLLMProvider:
         self._request_index += 1
         generated = GeneratedHeuristic(description, code, request_index)
         return RoleResponse(request_index=request_index, candidate=generated)
+
+    def summarize_memory(
+        self, request: MemorySummaryRequest, ledger: BudgetLedger
+    ) -> MemorySummaryResponse:
+        """Summarize structured facts deterministically without a network or raw dialogue."""
+
+        request_index = self._request_index
+        successful = sum(bool(event.get("success")) for event in request.current_events)
+        improved = sum(bool(event.get("improved")) for event in request.current_events)
+        failed = len(request.current_events) - successful
+        previous_items = request.previous_summary.get("useful_strategies", [])
+        inherited = len(previous_items) if isinstance(previous_items, list) else 0
+        response = MemorySummaryResponse(
+            request_index=request_index,
+            useful_strategies=(
+                f"{request.role.value}: preserve {improved} improving bounded mutation(s)",
+                f"{request.role.value}: retain {inherited} previously useful pattern(s)",
+            ),
+            failure_patterns=(f"{request.role.value}: observed {failed} structured failure(s)",),
+            applicability_conditions=("finite minimize objective and validated TSP candidate",),
+            avoid_patterns=("unbounded loops and unvalidated output",),
+        )
+        output_text = " ".join(
+            (
+                *response.useful_strategies,
+                *response.failure_patterns,
+                *response.applicability_conditions,
+                *response.avoid_patterns,
+            )
+        )
+        ledger.consume(
+            llm_calls=1,
+            input_tokens=max(1, len(request.prompt.split())),
+            output_tokens=max(1, len(output_text.split())),
+            cost=0.0,
+        )
+        self._request_index += 1
+        return response
+
+    def generate_memory_mutation(
+        self, request: MemoryMutationRequest, ledger: BudgetLedger
+    ) -> RoleResponse:
+        """Reuse the role-aware deterministic candidate generator for Stage 4."""
+
+        target_branch: Literal["explorer", "exploiter", "both"]
+        if request.role is RoCoRole.INTEGRATOR:
+            target_branch = "both"
+        elif request.role is RoCoRole.EXPLORER:
+            target_branch = "explorer"
+        else:
+            target_branch = "exploiter"
+        return self.generate_role(
+            RoleRequest(
+                role=request.role,
+                action="memory_mutation",
+                generation=request.generation,
+                round_index=0,
+                target_branch=target_branch,
+                prompt=request.prompt,
+                temperature=request.temperature,
+                candidates=(request.elite,),
+            ),
+            ledger,
+        )
 
 
 def _render_code(operator: EoHOperator, start_hint: int) -> str:
