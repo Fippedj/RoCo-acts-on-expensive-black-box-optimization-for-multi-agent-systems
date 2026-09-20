@@ -39,10 +39,13 @@ Use `git rev-parse HEAD` and `git rev-list --left-right --count HEAD...@{upstrea
 commit and synchronization state instead of copying a fixed HEAD into documentation.
 
 P3a supplies strict memory schemas, pure Stage 3 trace-to-event conversion, immutable generation
-segments, SHA-256/commit-last publication, and JSON-safe checkpoint recovery. The next development
-task is P3b: role-summary runtime calls, deterministic K=5 retrieval, auditable prompt truncation,
-and memory-guided mutation. P4 still covers end-to-end recovery and ablation acceptance; Stage 4 is
-not complete.
+segments, SHA-256/commit-last publication, and JSON-safe checkpoint recovery. P3b is recorded by
+local implementation commit `576b1dd`: it adds opt-in role-summary calls,
+deterministic K=5 retrieval, auditable character-budget truncation, and three-role memory mutation.
+It passed 75 tests, Ruff, mypy, doctor, the unchanged 12/12 and 18/13 smokes, and its new 44/28 smoke.
+Determine remote publication with `git status --short --branch`, rather than a fixed ahead/behind
+snapshot. P4 still covers engine-level interrupted-run resume, uninterrupted/resumed end-to-end
+equivalence, and memory/no-memory ablation acceptance; Stage 4 is not complete.
 
 ## Current Stage 3 executable scope
 
@@ -59,6 +62,12 @@ The RoCo path writes `collaboration_trace.jsonl` in the run directory, one seria
 
 This trace is short-lived run evidence. Stage 3 does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; those remain Stage 4 runtime work. Their design is now frozen in `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; do not treat those documents as an implemented feature. Real providers, expensive black-box optimization, and other benchmarks also remain out of scope.
 
+P3b adds `configs/smoke/tsp_memory_mock.yaml` as a separate, explicit opt-in.
+With two generations, `T=2`, and one memory elite, its no-failure accounting is 44 Mock LLM calls
+and 28 valid evaluations. It writes P3a generation segments/summaries/checkpoints/commit markers plus
+a runtime audit for retrieval and truncation. The existing Stage 2 and Stage 3 presets do not enable
+memory and retain their 12/12 and 18/13 contracts.
+
 ```bash
 conda activate roco-dev
 python -m pytest
@@ -67,7 +76,8 @@ ruff format --check src tests
 python -m roco_ebbo doctor
 python -m roco_ebbo smoke --config configs/smoke/tsp_mock.yaml
 python -m roco_ebbo smoke --config configs/smoke/tsp_roco_mock.yaml
+python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Before P3b, read `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a has implemented their facts/recovery foundation, while P3b must add only the deferred summary, retrieval, truncation, and mutation runtime path.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. P3b is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation and P3b adds summary, retrieval, truncation, and mutation runtime behavior. The next task is P4 recovery equivalence and ablation acceptance.

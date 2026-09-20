@@ -48,8 +48,11 @@ snapshot:
   stage4_p3a_commit: a0b24b118870633855f14553e06c0989c92a3aac
   stage4_p3a_committed_locally: true
   stage4_p3a_push_status: pending_normal_push
-  stage4_runtime_published: false  # P3b/P4 are still absent
-  expected_worktree_clean: true
+  stage4_p3b_commit: 576b1dd7d39e9f4c5ecd79bc771a23dfaa539852
+  stage4_p3b_committed_locally: true
+  stage4_p3b_remote_status: "run: git status --short --branch"
+  stage4_runtime_published: "determine from the live upstream relation; P4 remains absent"
+  expected_uncommitted_exception: ".vscode/settings.json only; verify live status"
   agents_md_present: false
   codegraph_present: false
   network_required: false
@@ -67,12 +70,24 @@ snapshot:
     stage2_smoke: "12 llm_calls, 12 valid_evals, budget_reached=false"
     stage3_smoke: "18 llm_calls, 13 valid_evals, budget_reached=false"
     git_diff_check: passed
+  p3b_draft_validation:
+    pytest: "75 passed"
+    ruff_check: passed
+    ruff_format_check: "36 files already formatted"
+    mypy: "22 source files, no issues"
+    doctor: "stage3-roco-ready; provider=mock; network=unused"
+    stage2_smoke: "12 llm_calls, 12 valid_evals, budget_reached=false"
+    stage3_smoke: "18 llm_calls, 13 valid_evals, budget_reached=false"
+    stage4_memory_smoke: "44 llm_calls, 28 valid_evals, budget_reached=false"
+    git_diff_check: passed
 ```
 
 重要：Stage 4 设计已由 `cf1e06b` 冻结并发布。P3a 事实层与恢复底座已在本地提交
 `a0b24b1`，并通过 65 个测试、Ruff、mypy、doctor 和两个既有 smoke；本状态文档提交后
 将与该代码检查点一起正常推送。精确 HEAD、远端同步状态和工作区必须用本文件开头的
-只读命令复核，不能把 P3a 已验证误写成整个 Stage 4 已完成。
+只读命令复核，不能把 P3a/P3b 已验证误写成整个 Stage 4 已完成。P3b 的离线摘要、检索、
+截断和 memory mutation 路径已由本地实现提交 `576b1dd` 固化；是否已同步远端必须用
+`git status --short --branch` 实时判断。P4 仍未实现。
 
 ## 2. 分支和 worktree 关系
 
@@ -99,6 +114,8 @@ stage/04-reflection-memory / origin/stage/04-reflection-memory
   21b0ca6  docs: record Stage 4 design publication status
       |
   a0b24b1  feat: add Stage 4 P3a memory foundation
+      |
+  576b1dd  feat: add Stage 4 P3b memory runtime
 ```
 
 `stage/02-eoh-mvp` 还在另一个 worktree：
@@ -121,8 +138,9 @@ Stage 3 worktree：
 
 当前分支 `stage/04-reflection-memory` 跟踪同名远端分支。不要在文档中固定自引用的 HEAD
 或 ahead/behind；用 `git rev-parse HEAD`、`git log -1 --format=%s` 和
-`git rev-list --left-right --count HEAD...@{upstream}` 获取实时值。P3a 正常推送后，工作区
-应无未提交修改。
+`git rev-list --left-right --count HEAD...@{upstream}` 获取实时值。每次发布后，工作区
+应无 Stage 4 源码/文档未提交修改；当前唯一允许保留的无关修改是 `.vscode/settings.json`，仍须用
+实时 `git status` 复核。
 
 本机 `roco-dev` 环境中的 editable install 曾指向 Stage 2 的兄弟 worktree。为确保验证加载当前源码，最近一次验证先设置了：
 
@@ -192,7 +210,7 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 | Stage 1：论文规格 | 已提交并有远端分支 | algorithm、参数登记、缺口表、ADR-0001 | 100% |
 | Stage 2：确定性 EoH MVP | 已提交并有远端分支 | Mock、预算、Candidate/Population、TSP-20 evaluator、CLI smoke | 100% |
 | Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
-| Stage 4：反思与跨代记忆 | 设计已发布；P3a 已提交并验证、待正常推送；P3b/P4 未实现 | ADR-0004、memory 可执行规格、P3a facts/recovery 底座 | 设计 100%，P3a 100%，P3b/P4 0% |
+| Stage 4：反思与跨代记忆 | 设计/P3a 已发布；P3b 已验证并形成本地实现提交，远端状态实时核验；P4 未实现 | ADR-0004、P3a facts/recovery、P3b opt-in 离线摘要/检索/截断/mutation runtime | 设计 100%，P3a 100%，P3b 100%，P4 0% |
 | Stage 5：论文实验对齐 | 未实现 | 只有路线图和 TSP-20 开发 evaluator | 0% |
 | Stage 6：多智能体 EBBO | 未实现 | 只有研究分析和路线图 | 0% |
 
@@ -315,7 +333,7 @@ status / error_type / error_message
 - ADR-0003 明确了论文对应、工程简化和 Stage 4 边界。
 - 未发现当前范围内阻止提交的功能性错误。
 
-### 7.2 剩余非阻断风险
+### 7.2 Stage 3 剩余非阻断风险
 
 提交前加固已经覆盖 provider 异常、Integrator 失败、timeout、默认 T=3、多代 trace、
 两类预算中断、非有限配置和最小化契约。剩余项属于后续耐久性或真实 provider 范围：
@@ -331,9 +349,11 @@ status / error_type / error_message
 - roadmap 建议 Jinja/YAML prompt；当前用版本化 Python 常量。
 - roadmap 曾建议 `Proposal/Critique/Revision/IntegrationDecision` 多 schema；当前使用统一 `RoleRequest/RoleResponse`。
 - roadmap 提到相邻 `+1/+2`；当前可执行规格与实现使用边界安全的相邻 `±1`，仍需 PDF 逐式复核。
-- 没有上下文 token 截断、自动修复重试或 no-role 消融开关。
+- Stage 3 本身没有上下文截断、自动修复重试或 no-role 消融开关；P3b 只为 opt-in
+  memory Mock 增加确定性字符截断，不把它冒充 tokenizer。
 - 没有真实 OpenAI-compatible provider；最近 Stage 3 任务明确要求离线且禁止真实 API。
-- 没有 checkpoint/resume、缓存、并行调度或容器级沙箱。
+- P3a 有 checkpoint 的序列化/恢复读取底座，但 P4 的运行中断恢复等价仍未实现；缓存、
+  并行调度和容器级沙箱也未实现。
 
 修改这些行为前必须先更新 ADR/规格及预算公式，不能静默改变现有 smoke 回归。
 
@@ -343,12 +363,13 @@ status / error_type / error_message
 
 - 已完成并发布的设计：`roco-memory-event-v1`、角色摘要、minimize `delta_g`、K=5 的
   3/2 成败检索、每精英 E/X/I 三次 mutation、代级 segment/commit/checkpoint 与恢复不变量；
-- 已提交、已验证、待正常推送的 P3a：严格 memory schema、Stage 3 trace 纯转换器、
+- 已提交、已验证的 P3a：严格 memory schema、Stage 3 trace 纯转换器、
   不可变 generation segment、commit-last 校验、checkpoint 序列化与恢复读取底座；
   代码提交为 `a0b24b1`，验证为 65 passed、Ruff check/format、mypy、doctor、Stage 2
   12/12 smoke、Stage 3 T=2 18/13 smoke 与 `git diff --check` 均通过；
-- 当前下一开发任务 P3b：LTReflect/角色摘要运行时、K=5 检索、可审计 prompt 截断与
-  memory-guided mutation 接入；
+- P3b 已由 `576b1dd` 形成本地实现提交：LTReflect/角色摘要运行时、K=5 检索、可审计
+  prompt 截断与 memory-guided mutation 的显式 opt-in 接入；75 tests、Ruff、mypy、
+  doctor 和三个 smoke 已通过，远端发布状态由实时 upstream 关系判断；
 - P4 仍需端到端恢复与 memory/no-memory 消融验收；整个 Stage 4 尚未完成。
 
 ### Stage 5
@@ -375,8 +396,8 @@ P0  Stage 3 最终审计/小范围加固（已完成）
   -> P1  Stage 3 提交并发布远端分支（已完成）
   -> P2  Stage 4 可执行规格和 ADR-0004（已完成、已提交并发布）
   -> P3a memory schema/trace 转换/segment store/commit-last/checkpoint 恢复底座（已提交、已验证、待正常推送）
-  -> P3b 角色摘要/K=5 检索/可审计 prompt 截断/memory mutation 接入（当前下一开发任务）
-  -> P4  Stage 4 确定性恢复/消融验收
+  -> P3b 角色摘要/K=5 检索/可审计 prompt 截断/memory mutation 接入（已验证并本地提交）
+  -> P4  engine 级中断恢复、不中断/恢复端到端等价、memory/no-memory 消融（下一任务）
   -> P5  真实 provider 的独立小预算接入
   -> P6  Stage 5 TSP 论文实验对齐
   -> P7  其他 COP 和统计复现
@@ -565,7 +586,8 @@ generated candidates 或 valid evaluations。
 ## 13. 当前最推荐的下一条提示词
 
 Prompt A、Prompt B、Prompt C 和 Prompt D 均已完成；Stage 4 设计已由 `cf1e06b` 冻结并
-发布，P3a 事实层与恢复底座已由 `a0b24b1` 提交并通过完整质量门禁，待与本状态文档一起
-正常推送。当前下一开发任务是 P3b：角色摘要运行时、K=5 检索、可审计 prompt 截断和
-memory mutation 接入。P4 的端到端恢复与消融验收仍在其后；不得把 P3a 误写成整个
-Stage 4 完成。
+发布，P3a 事实层与恢复底座已由 `a0b24b1` 提交并通过完整质量门禁。P3b 实现已由
+`576b1dd` 本地提交，并通过 75 tests、Ruff、mypy、doctor、12/12、18/13 与 44/28
+三个 smoke；远端状态仍以实时 Git 核验为准。下一任务是 P4：engine 级中断恢复、
+不中断/恢复端到端等价和 memory/no-memory 消融。不得把 P3a/P3b 误写成整个 Stage 4
+完成。
