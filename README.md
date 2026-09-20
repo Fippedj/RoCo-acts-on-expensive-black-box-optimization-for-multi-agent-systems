@@ -2,9 +2,10 @@
 
 Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic Heuristic Design**, followed by a migration toward multi-agent expensive black-box optimization (EBBO).
 
-This repository contains deterministic Stage 2/3 baselines plus an uncommitted, opt-in Stage 4 P3b
-offline memory draft. It does **not** claim to be the authors' official implementation or a completed
-paper reproduction; interrupted-run recovery equivalence and ablation acceptance remain P4 work.
+This repository contains deterministic Stage 2/3 baselines and the Stage 4 V1 opt-in offline memory
+path. P4 recovery and ablation were verified and formed local implementation commit `c7a1ae4`; use
+live Git status to determine publication. It does **not** claim to be the authors' official
+implementation or a completed paper reproduction; real-provider and paper experiments remain P5+.
 
 ## Recommended local setup
 
@@ -44,7 +45,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `configs/paper_defaults.yaml` | Paper-aligned settings, annotated with non-disclosed items |
 | `configs/smoke/tsp_mock.yaml` | Unchanged Stage 2 deterministic EoH regression configuration |
 | `configs/smoke/tsp_roco_mock.yaml` | Deterministic Stage 3 four-role collaboration configuration |
-| `configs/smoke/tsp_memory_mock.yaml` | Opt-in two-generation Stage 4 P3b offline memory configuration |
+| `configs/smoke/tsp_memory_mock.yaml` | Opt-in two-generation Stage 4 offline memory configuration |
 | `src/roco_ebbo/` | RoCo / EBBO implementation package |
 | `tests/` | Unit, integration, and regression tests |
 | `scripts/` | WSL bootstrap and later experiment entry points |
@@ -95,18 +96,28 @@ Each RoCo run writes `collaboration_trace.jsonl` beneath its run directory, one 
 
 See `docs/adrs/0003-stage3-roco-collaboration.md` for the prompt contracts, failure degradation, and trace schema.
 
-## Stage 4 memory runtime draft
+## Stage 4 V1 deterministic memory and recovery
 
-The uncommitted P3b worktree adds a separate `tsp_memory_mock.yaml` smoke preset. Memory remains
-explicitly opt-in: the legacy Stage 2 and Stage 3 configs do not construct a memory runtime. The new
-offline path summarizes Explorer/Exploiter/Integrator facts, retrieves at most five prior committed
-role-scoped events with a 3/2 balance, audits deterministic character truncation, and evaluates one
-memory-guided candidate per role and configured elite before the existing unified Top-N.
+Published P3b adds a separate `tsp_memory_mock.yaml` smoke preset. Memory remains explicitly opt-in:
+the legacy Stage 2 and Stage 3 configs do not construct a memory runtime. The offline path summarizes
+Explorer/Exploiter/Integrator facts, retrieves at most five prior committed role-scoped events with
+a 3/2 balance, audits deterministic character truncation, and evaluates one memory-guided candidate
+per role and configured elite before the existing unified Top-N.
 
 For its fixed two generations, `T=2`, and `elite_count=1`, the all-valid Mock budget is 44 LLM calls
 and 28 valid evaluations. Each completed generation is published through the P3a immutable segment,
-summary, checkpoint, and commit-last store. This draft does not add a real provider, network access,
-cache, embeddings, new benchmarks, EBBO, or P4 interrupted-run resume equivalence.
+summary, checkpoint, and commit-last store.
+
+P4 exposes `run_smoke(...,
+interrupt_after_committed_generation=1)` and `resume_smoke(...)`. Resume only examines the explicitly
+named memory directory, rejects committed corruption, generation gaps, and config/seed mismatches,
+and continues from the next engine generation without charging prior work again. A paired
+`run_memory_ablation(...)` entry keeps the same seed and two-generation RoCo settings: memory-off is
+32 calls / 22 generated candidates / 22 valid evaluations and writes no memory artifacts; memory-on
+remains 44/28/28. These counts establish control-flow boundaries, not a performance comparison.
+
+Stage 4 V1 does not add a real provider, network access, cache, embeddings, new benchmarks, EBBO, or
+process-level crash orchestration outside the deterministic post-commit interruption control.
 
 ## Original repository purpose
 

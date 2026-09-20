@@ -36,7 +36,8 @@
 | G-024 | Stage 2/3 配置兼容分派 | 必须自行设计 | 论文未涉及仓库迁移兼容 | `evolution.mode: eoh|roco`；字段缺省按 `eoh`，旧 smoke 行为作为回归契约，RoCo 使用独立配置 | 后续新增模式不得改变缺省含义或旧候选顺序 | ADR-0003；Stage 3 |
 | G-025 | trace 到长期事件的边界 | 必须自行设计 | 论文没有日志 schema；Stage 3 trace 明确 generation-local | 纯转换器从 proposal/compare/integrate 派生事件；初始 Critic 不入长期 memory；当代事件提交前不可被历史检索 | P3a 已完成成功/失败 mapping、Critic 来源和 selected 回填测试；待正常推送 | ADR-0004；P3a 已完成 |
 | G-026 | 角色摘要 multiplicity | 必须自行设计 | 论文说明 LTReflect 机制但未披露每代调用数 | 每代 E/X/I 各一次；Critic 反馈作为证据但不建独立长期摘要；失败沿用旧/空摘要 | P3b `576b1dd` 已实现并验证固定 E/X/I 次序、严格结构响应、旧/空回退和预算停止 | ADR-0004；P3b 已完成 |
-| G-027 | 代级恢复 | 必须自行设计 | 论文未披露 crash consistency | population、账本、随机/provider 游标进入 JSON checkpoint；只从连续有效 commit 恢复，半写代忽略 | P3a 已实现 JSON-safe snapshot、连续 commit 扫描和恢复读取；待正常推送 | ADR-0004；P3a 已完成 |
+| G-027 | 代级恢复 | 必须自行设计 | 论文未披露 crash consistency | population、账本、随机/provider 游标进入 JSON checkpoint；只从连续有效 commit 恢复，半写代忽略 | P3a 底座已发布；P4 实现提交 `c7a1ae4` 增加显式 engine resume、提交后中断、坏 hash/gap/config/seed fail-closed 及不中断/恢复规范工件哈希等价 | ADR-0004；Stage 4 V1 已完成 |
+| G-029 | memory/no-memory 消融边界 | 必须自行设计 | 论文未给出可执行的离线消融记账与工件协议 | 同 seed、`T=2`、两代显式比较 memory off/on；off 不构造 runtime、不写 memory，on 保持既有路径；只报告控制流与预算差异 | P4 `c7a1ae4` 验证 off 为 32 calls/22 generated/22 valid、on 为 44/28/28；不作性能优劣结论 | Stage 4 V1 已完成 |
 | G-028 | memory 候选去重/cache | 必须自行设计 | 论文没有预算口径；Stage 2/3 当前不去重 | Stage 4 V1 仍不去重、不缓存；相同代码照常生成和评估，可仅记录代码哈希 | 成本较高但保持账本连续；未来改变需新 ADR/cache-hit counter | ADR-0004；后续阶段 |
 
 ## 当前阻断项
@@ -48,7 +49,8 @@ G-020 中未能从论文唯一确定的部分已作为显式工程口径版本�
 进入论文数值复现或真实 provider 前，仍须回到原 PDF 逐式核验精英邻居采样、
 Integrator 位置、Critic 原 prompt 和训练 timeout。P2 已完成：Stage 4 的 schema、检索、
 摘要、mutation 与恢复协议已经由 `cf1e06b`/ADR-0004 设计冻结并发布。P3a 事实层与恢复
-底座已由 `a0b24b1` 提交并通过 65 passed、Ruff、mypy、doctor、Stage 2 12/12 与 Stage 3
-18/13 smoke。P3b 已由 `576b1dd` 形成本地实现提交，并通过 75 tests、完整质量门禁和
-44/28 memory smoke；远端同步状态必须实时核验。Stage 4 尚未整体完成，下一任务 P4
-仍需 engine 级中断恢复、不中断/恢复端到端等价与 memory/no-memory 消融验收。
+底座由 `a0b24b1` 发布，P3b 运行时由 `576b1dd` 发布；远端同步状态仍须实时核验。当前
+P4 已由本地实现提交 `c7a1ae4` 固化，并验证 engine 级提交后中断恢复、不中断/恢复端到端
+规范哈希等价及 memory/no-memory 消融；远端发布状态由实时 Git 判断。Stage 4 冻结 V1 的
+离线 Mock 实现已完成。下一任务 P5 仅实现 OpenAI-compatible provider 并使用 fake
+transport 验证；真实 API、真实模型实验和论文数值复现仍未实现。

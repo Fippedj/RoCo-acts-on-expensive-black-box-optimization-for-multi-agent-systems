@@ -32,20 +32,20 @@ The paper's body says 400 LLM calls per generation, while its appendix says a ma
 ## Current checkpoint and next task
 
 The active Stage 4 worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage4` on
-`stage/04-reflection-memory`. P2 design is published at `cf1e06b`; P3a is committed locally at
-`a0b24b1` (`feat: add Stage 4 P3a memory foundation`), has passed 65 tests, Ruff, mypy, doctor,
-and both existing smoke contracts, and is awaiting normal publication with its status document.
+`stage/04-reflection-memory`. P2 design is published at `cf1e06b`; P3a is published at `a0b24b1`,
+and P3b is published at `576b1dd` with its status record at `51b8d44`.
 Use `git rev-parse HEAD` and `git rev-list --left-right --count HEAD...@{upstream}` for the live
 commit and synchronization state instead of copying a fixed HEAD into documentation.
 
 P3a supplies strict memory schemas, pure Stage 3 trace-to-event conversion, immutable generation
-segments, SHA-256/commit-last publication, and JSON-safe checkpoint recovery. P3b is recorded by
-local implementation commit `576b1dd`: it adds opt-in role-summary calls,
+segments, SHA-256/commit-last publication, and JSON-safe checkpoint recovery. P3b adds opt-in role-summary calls,
 deterministic K=5 retrieval, auditable character-budget truncation, and three-role memory mutation.
 It passed 75 tests, Ruff, mypy, doctor, the unchanged 12/12 and 18/13 smokes, and its new 44/28 smoke.
-Determine remote publication with `git status --short --branch`, rather than a fixed ahead/behind
-snapshot. P4 still covers engine-level interrupted-run resume, uninterrupted/resumed end-to-end
-equivalence, and memory/no-memory ablation acceptance; Stage 4 is not complete.
+P4 is verified and recorded by local implementation commit `c7a1ae4`: it adds explicit checkpoint
+resume from a caller-specified run/memory directory, post-generation-commit deterministic
+interruption, full-versus-resumed non-time state and canonical artifact/hash equivalence, and a
+memory-off/on ablation entry. Determine publication state with `git status --short --branch`; do not
+hard-code current HEAD or ahead/behind. The frozen Stage 4 V1 offline Mock implementation is complete.
 
 ## Current Stage 3 executable scope
 
@@ -60,7 +60,7 @@ Candidate code must define `heuristic(distance_matrix) -> tour`. EoH and RoCo ca
 
 The RoCo path writes `collaboration_trace.jsonl` in the run directory, one serializable trace per generation. Check it for the elite pair, ranks, requested/completed rounds, role inputs and outputs, evaluation results, budget deltas, structured failures, and selected IDs. A failed role or invalid candidate is skipped safely; a hard budget stops new work without discarding already valid candidates.
 
-This trace is short-lived run evidence. Stage 3 does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; those remain Stage 4 runtime work. Their design is now frozen in `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; do not treat those documents as an implemented feature. Real providers, expensive black-box optimization, and other benchmarks also remain out of scope.
+This trace is short-lived run evidence. Stage 3 itself does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; Stage 4 V1 supplies those capabilities through a separate opt-in runtime. Their design is frozen in `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`. Real providers, expensive black-box optimization, and other benchmarks remain out of scope.
 
 P3b adds `configs/smoke/tsp_memory_mock.yaml` as a separate, explicit opt-in.
 With two generations, `T=2`, and one memory elite, its no-failure accounting is 44 Mock LLM calls
@@ -80,4 +80,4 @@ python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. P3b is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation and P3b adds summary, retrieval, truncation, and mutation runtime behavior. The next task is P4 recovery equivalence and ablation acceptance.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. The next development task is P5: implement an OpenAI-compatible provider and verify it only with fake transport—no real API calls.
