@@ -31,8 +31,8 @@ The paper's body says 400 LLM calls per generation, while its appendix says a ma
 
 ## Current checkpoint and next task
 
-The active Stage 5 worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5` on
-`stage/05-provider-adapter`, based exactly on the published Stage 4 checkpoint `59c3357`.
+The active Stage 5 P6 worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol` on
+`stage/05-tsp-protocol`, based exactly on local P5 status commit `7969b0d`.
 Use `git rev-parse HEAD` and live status commands for the current implementation state instead of
 copying a self-referential Stage 5 HEAD into documentation.
 
@@ -50,6 +50,17 @@ budget, audit, and redaction contracts. It has been exercised only with injected
 repository still has no HTTP transport, reads no real key, makes no network request, and performs no
 real-provider smoke. Mock remains the default provider; query current HEAD, upstream, and publication
 state with live Git commands.
+
+P6 is implemented by `a94ce0c`: it adds a TSP-only, synthetic deterministic TSP-50/TSP-100/TSP-200
+manifest with per-instance SHA-256 checksums and separated train/test splits, plus a 72-result Mock/fake
+dry-run (6 instances × two prompt-visibility conditions × three fixed seeds × EoH/RoCo). Each run has
+the same fixed hard limits (24 calls, 120000 mock input/output tokens, 24 generated candidates, 24 valid
+evaluations, USD 1, and 120 seconds); actual default use is EoH 8 calls/8 valid evaluations and RoCo 18
+calls/13 valid evaluations. White-box and black-box denote prompt visibility, not an expensive oracle.
+P6 passed 133 tests, Ruff, mypy, doctor, all three existing offline smokes, and `git diff --check`. It
+uses synthetic deterministic data—not the paper's raw data or a numerical reproduction—and leaves
+G-012, G-016, G-021, and G-034 through G-036 unresolved. Stage 5 is not complete; the next task is P7a
+multi-COP/statistical-protocol and evidence design. Use live Git queries for HEAD, upstream, and publication.
 
 ## Current Stage 3 executable scope
 
@@ -99,4 +110,4 @@ python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary. P6 is next: TSP experiment protocol and Mock/fake dry-run only. It does not authorize real-provider interoperability, model experiments, or paper-reproduction claims.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 and `paper_spec/tsp_experiment_protocol.md` define completed P6 offline TSP protocol/dry-run boundary. Neither authorizes real-provider interoperability, model experiments, paper-reproduction claims, or P7a implementation.

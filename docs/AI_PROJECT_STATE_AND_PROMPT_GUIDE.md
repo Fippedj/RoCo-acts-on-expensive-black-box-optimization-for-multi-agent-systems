@@ -31,10 +31,10 @@ git diff --check
 
 ```yaml
 snapshot:
-  date: 2026-09-20
-  repository: /home/fj/RoCo-BO/RoCo-ebbo-stage5
+  date: 2026-09-21
+  repository: /home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol
   origin: https://github.com/Fippedj/RoCo-acts-on-expensive-black-box-optimization-for-multi-agent-systems.git
-  branch: stage/05-provider-adapter
+  branch: stage/05-tsp-protocol
   stage4_parent: f6f3e1dd19427704971d443f28e894ce57af3676
   stage5_baseline: 59c335757b65935b29b7141ef6f0e6d338eb3603
   current_head: "run: git rev-parse HEAD"
@@ -59,6 +59,9 @@ snapshot:
   stage4_runtime_published: true
   stage5_p5_implementation_commit: 38428700d8f272f8107e8cd042f5fdec24d3e33d
   stage5_p5_status: "implemented by the commit above; query current HEAD, upstream, and publication with live Git"
+  stage5_p6_local_baseline: 7969b0d
+  stage5_p6_implementation_commit: a94ce0c
+  stage5_p6_status: "offline TSP protocol/dry-run only; query current HEAD, upstream, and publication with live Git"
   stage5_complete: false
   agents_md_present: false
   codegraph_present: false
@@ -117,6 +120,14 @@ snapshot:
     stage3_smoke: "18 llm_calls, 13 valid_evals, budget_reached=false"
     stage4_memory_smoke: "44 llm_calls, 28 valid_evals, budget_reached=false"
     git_diff_check: passed
+  p6_tsp_protocol:
+    scope: "TSP-only deterministic Mock/fake dry-run; not paper data or numerical reproduction"
+    data: "synthetic deterministic TSP-50/TSP-100/TSP-200 with train/test manifest and SHA-256 checksums"
+    dry_run: "72 results: 6 instances x 2 prompt-visibility conditions x 3 fixed seeds x EoH/RoCo"
+    hard_limits_per_run: "24 LLM calls; 120000 mock tokens; 24 generated candidates; 24 valid evaluations; USD 1; 120 seconds"
+    actual_per_run: "EoH 8 calls/8 valid evaluations; RoCo 18 calls/13 valid evaluations"
+    prompt_visibility: "white-box/black-box are metadata-only prompt visibility conditions, not expensive oracles"
+    validation: "133 passed; Ruff check/format; mypy 25 source files; doctor; unchanged 12/12, 18/13, 44/28 smoke; git diff --check"
 ```
 
 重要：Stage 4 设计已由 `cf1e06b` 冻结并发布，P3a/P3b 分别由 `a0b24b1` 与 `576b1dd`
@@ -186,14 +197,14 @@ Stage 4 worktree：
 /home/fj/RoCo-BO/RoCo-ebbo-stage4
 ```
 
-当前 Stage 5 worktree：
+P6 所在的当前 Stage 5 worktree：
 
 ```text
-/home/fj/RoCo-BO/RoCo-ebbo-stage5
+/home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol
 ```
 
-`stage/04-reflection-memory` 已通过 `59c3357` 发布完整 Stage 4 V1。当前本地分支
-`stage/05-provider-adapter` 从该提交创建，P5 实现提交为 `3842870`；当前 HEAD、upstream
+`stage/04-reflection-memory` 已通过 `59c3357` 发布完整 Stage 4 V1。P6 本地基线为 P5
+状态提交 `7969b0d`，实现提交为 `a94ce0c`；当前分支、HEAD、upstream
 与发布状态必须用实时 Git 判断。不要在文档中固定自引用的 current HEAD 或 ahead/behind；用
 `git rev-parse HEAD`、`git log -1 --format=%s`、`git branch -vv` 和适用时的
 `git rev-list --left-right --count HEAD...@{upstream}` 获取实时值。实时 `git status`
@@ -268,12 +279,12 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 | Stage 2：确定性 EoH MVP | 已提交并有远端分支 | Mock、预算、Candidate/Population、TSP-20 evaluator、CLI smoke | 100% |
 | Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
 | Stage 4：反思与跨代记忆 | 已由 `59c3357` 发布 | ADR-0004、事实/恢复底座、opt-in 摘要/检索/截断/mutation、显式 resume 与离线消融 | 冻结 V1 离线 Mock 实现 100% |
-| Stage 5：论文实验对齐 | P5 adapter 子任务由 `3842870` 实现；发布状态实时查询 | OpenAI-compatible EoH/RoCo adapter 仅经 fake transport 离线验证；无 HTTP/真实模型实验 | P5 子任务 100%；Stage 5 实验未完成 |
+| Stage 5：论文实验对齐 | P5 adapter 由 `3842870`、P6 TSP 协议由 `a94ce0c` 实现；发布状态实时查询 | P6 提供合成确定性 TSP-50/100/200、checksum、train/test、72 条 Mock dry-run、相同硬预算和 EoH/RoCo 聚合；无 HTTP/真实模型实验 | P5/P6 离线子任务完成；Stage 5 实验未完成 |
 | Stage 6：多智能体 EBBO | 未实现 | 只有研究分析和路线图 | 0% |
 
 以“六阶段是否具有可运行实现”粗略计数，仍只完成前四阶段的既定 V1 范围，约为 4/6。
-P5 完成的是 Stage 5 的 provider 协议与离线安全底座，不是论文实验阶段本身；Stage 5–6
-的真实实验与方法研究仍明显更重。
+P5 完成 provider 协议与离线安全底座，P6 完成 TSP-only 合成协议和 Mock/fake dry-run；两者
+都不是论文原始数据、数值复现或真实实验。Stage 5–6 的真实实验与方法研究仍明显更重。
 
 另一个必须说明的口径：相对于早期 roadmap 中更宽的 Stage 3 清单，当前约完成 70%–80%。roadmap 还提到 prompt 外置为 Jinja/YAML、上下文截断、修复重试、`no-critic`/`no-integrator` 消融和真实小预算运行；这些不在最近一次明确 Stage 3 任务范围内，且真实 API 被明确禁止，因此不是当前验收失败，而是后续候选任务。
 
@@ -395,6 +406,22 @@ status / error_type / error_message
 离线 adapter 子任务，不包括具体 HTTP/TLS/auth transport、真实 endpoint、真实 tokenizer/
 价格核验、provider smoke、模型质量或论文实验。
 
+### 6.7 Stage 5 P6：TSP-only 协议与离线 dry-run
+
+- `a94ce0c` 在 P5 状态基线 `7969b0d` 上提供合成确定性 TSP-50、TSP-100、TSP-200；每个
+  train/test 实例的坐标规则、seed、规模、split 和 SHA-256 都写入可重放 manifest。
+- 默认矩阵产生 72 条结果（6 个实例 × white-box/black-box × 3 个固定 seed × EoH/RoCo）。
+  这两个标签只表达 prompt visibility；它们不是昂贵 oracle，首次 Mock/fake 验证不主张效果差异。
+- 公平性由每个 run 的相同硬上限定义：24 calls、120000 mock input/output tokens、24 generated
+  candidates、24 valid evaluations、USD 1 和 120 seconds，而不是仅比较偶然的实际消耗。默认实际
+  消耗为 EoH 8 calls/8 valid evaluations、RoCo 18 calls/13 valid evaluations。
+- JSONL/CSV 工件记录 seed、split、instance checksum、method、provider、visibility、calls、tokens、
+  cost、valid evaluations、candidates、wall time、best score 与失败/预算状态，并按 method/seed/split
+  聚合；不计算或宣称统计显著性。完整边界见 ADR-0006 与 `paper_spec/tsp_experiment_protocol.md`。
+- 133 tests、Ruff check/format、mypy（25 source files）、doctor、原有 12/12、18/13、44/28 三个
+  smoke 和 `git diff --check` 已在完全离线路径通过。该验证不下载论文数据、不调用真实 API，
+  也不构成模型性能结论或论文数值复现。
+
 ## 7. 当前审计结论
 
 ### 7.1 在最近明确 Stage 3 范围内通过的项目
@@ -460,13 +487,15 @@ status / error_type / error_message
 
 P5 已完成无 HTTP 实现的 OpenAI-compatible EoH/RoCo adapter，以及 fake transport、
 fake token counter 和 synthetic price table 的离线验证；这只是 Stage 5 基础设施子任务。
+P6 已完成合成确定性 TSP-50/100/200 的 checksum/train-test 协议和 72 条 Mock/fake dry-run，
+但不是论文原始数据或数值复现。以下登记的证据缺口仍未解决：G-012、G-016、G-021、G-034、
+G-035、G-036。
 以下内容仍未实现：
 
 - 具体 HTTP/TLS/auth transport、真实 endpoint/key 注入、真实 provider 兼容性
   smoke、模型 tokenizer/价格核验或任何付费调用；
-- 论文 TSP-50/TSP-100/TSP-200 数据与训练/测试协议；
-- white-box/black-box prompt 两套实验；
-- ReEvo、EoH 等预算公平基线；
+- 论文原始 TSP 数据、实例数量、prompt、timeout、预算和 white-box/black-box 精确证据；
+- 非 Mock 的实际方法比较、真实模型成本/Tokenizer 核验与受授权的真实实验；
 - MKP、OP、BPP、CVRP 和 GLS；
 - 多 seed 统计、置信区间、结果聚合和论文数值报告。
 
@@ -488,8 +517,8 @@ P0  Stage 3 最终审计/小范围加固（已完成）
   -> P3b 角色摘要/K=5 检索/可审计 prompt 截断/memory mutation 接入（已发布）
   -> P4  engine 级中断恢复、不中断/恢复端到端等价、memory/no-memory 消融（已发布）
   -> P5  OpenAI-compatible adapter，仅以 fake transport 离线验证（`3842870`；发布状态实时查询）
-  -> P6  Stage 5 TSP 论文实验协议与离线 dry-run（下一任务；仍不授权真实 API）
-  -> P7  其他 COP 和统计复现
+  -> P6  Stage 5 TSP 协议与 Mock/fake dry-run（`a94ce0c`；已实现，发布状态实时查询）
+  -> P7a 多 COP/统计协议与证据设计（下一任务；不自动授权真实 API）
   -> P8  Stage 6 EBBO 设计规格
   -> P9  EBBO 最小基线和角色控制层
 ```
@@ -686,6 +715,11 @@ Mock 仍为默认，EoH/RoCo adapter 只以 fake transport 验证，Stage 4 memo
 仓库没有 HTTP transport，也没有真实 endpoint/key、provider smoke、真实模型或费用。
 这不代表整个 Stage 5 完成；当前 HEAD、upstream 与发布状态仍须用实时 Git 核验。
 
-下一推荐任务是 11.6 的 P6 TSP 论文实验协议与 Mock/fake dry-run。该任务仍不得发起真实
-API 或付费实验，也不得顺带实现其他 COP/EBBO。若要增加具体 HTTP transport、认证、
-真实 tokenizer/价格表或 provider smoke，必须作为独立任务另行授权并设置明确硬预算。
+P6 已由 `a94ce0c` 实现：合成确定性 TSP-50/100/200 的 manifest/checksum、train/test 分离、
+72 条 Mock/fake dry-run、相同硬预算和 EoH/RoCo 结果 schema。white-box/black-box 仅为
+prompt visibility 条件，非昂贵 oracle；P6 不是论文原始数据、数值复现或真实模型实验。它通过
+133 tests、Ruff、mypy、doctor 和原有三个离线 smoke；G-012、G-016、G-021、G-034–G-036 仍未解决。
+
+下一推荐任务是 P7a：多 COP/统计协议与证据设计。Stage 5 仍未完成；P7a 不得自动发起真实 API、
+付费实验或实现 EBBO。任何具体 HTTP transport、认证、真实 tokenizer/价格表、provider smoke 或
+真实实验必须作为独立任务另行授权并设置明确硬预算；HEAD、upstream 与发布状态仍用实时 Git 核验。
