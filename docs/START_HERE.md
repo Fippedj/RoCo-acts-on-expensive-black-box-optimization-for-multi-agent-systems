@@ -31,7 +31,7 @@ The paper's body says 400 LLM calls per generation, while its appendix says a ma
 
 ## Current checkpoint and next task
 
-The active Stage 5 P7a worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol` on
+The active Stage 5 P7b worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol` on
 `stage/05-tsp-protocol`, based exactly on local P5 status commit `7969b0d`.
 Use `git rev-parse HEAD` and live status commands for the current implementation state instead of
 copying a self-referential Stage 5 HEAD into documentation.
@@ -68,10 +68,27 @@ P7a is designed. ADR-0007 and
 candidate COPs; only the synthetic P6 TSP protocol exists. They freeze E0--E4 evidence levels, the
 cross-COP run record, equal hard-budget/split/visibility/seed/provider-version rules, and a future
 pre-registered descriptive/bootstrap/failure plan. They do not implement, download, support, or run
-another COP. The P6 commits `a94ce0c` and `7302ddd` were local-only with no upstream in the P7a-start
-Git query; always re-query live Git before relying on publication status. P7b is next: after explicit
-source and license authorization, implement one registered COP's offline data adapter and Mock/fake
-dry-run only.
+another COP. P7a is recorded by local commit `1953fc7`; the P7b-0-start Git query found this branch still
+without an upstream. Always re-query live Git before relying on HEAD or publication status.
+
+P7b-0 used the user's narrow authorization for John Burkardt/Florida State University
+`KNAPSACK_MULTIPLE` only. The ignored `data/raw/mkp/fsu-knapsack-multiple/` directory now holds P01--P06:
+18 required input files plus the three source-present optional references for P01/P05/P06. All 21 files
+are non-empty numeric text and are frozen by URL, byte count, and SHA-256 in
+`data_provenance/mkp_fsu_knapsack_multiple_v1.md`; the source page links GNU LGPL v3. This is E2 source/
+inventory evidence only. P7b then adds `mkp-fsu-protocol-v1`: raw-byte/checksum-verified fail-closed loader,
+`mkp-fsu-protocol-only-v1` split, `mkp-fsu-evaluator-v1`, and a `full_instance` Mock-only dry-run that
+never exposes optional references. All six instances are integration-only—there is no train/validation/test.
+The evaluator keeps global minimize semantics with `score=-raw_profit`; normalized score is audit-only.
+
+The fixed root seed 707 matrix contains P01--P06 × EoH/RoCo = 12 runs. Every run shares the new
+`mkp-fsu-mock-engineering-v1` ceilings (20 calls, 50000 Mock tokens, 16 generated candidates, 16 valid
+evaluations, USD 0.25, 60 seconds); actual per-run accounting is EoH 8 calls/8 valid and RoCo 18/13.
+Manifest, JSONL/CSV, six ledgers and non-time replay checksums are stable; no statistics or method comparison
+is generated. This closes only the FSU MKP E3 subitems of G-038/G-039/G-040. G-041, E4/real provider,
+reference optimality, other COPs, paper reproduction and performance claims remain open. The implementation
+is locally verified; use live Git for P7b commit, HEAD/upstream/publication status and do not include the
+user's `.vscode/settings.json` in a future submission.
 
 ## Current Stage 3 executable scope
 
@@ -121,4 +138,4 @@ python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 defines P6 offline TSP protocol/dry-run; ADR-0007 and `paper_spec/multicop_experiment_protocol.md` define P7a's evidence/statistics boundary. Query live Git for P7a's commit and publication status. None authorizes real-provider interoperability, data downloads, model experiments, paper-reproduction claims, or P7b implementation before explicit data authorization.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 defines P6 offline TSP protocol/dry-run; ADR-0007 and `paper_spec/multicop_experiment_protocol.md` define P7a's evidence/statistics boundary. The P7b-0 provenance freezes only the specifically authorized FSU MKP source and checksums. Query live Git for commit and publication status. None authorizes real-provider interoperability, another data source, model experiments, paper-reproduction claims, or P7b parser/evaluator/dry-run implementation without a separate task.

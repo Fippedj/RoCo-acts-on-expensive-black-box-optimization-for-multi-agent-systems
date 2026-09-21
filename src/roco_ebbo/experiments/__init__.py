@@ -4,6 +4,21 @@ The package deliberately contains protocol and accounting infrastructure only.
 It does not construct a network provider or make a performance claim.
 """
 
+from roco_ebbo.experiments.mkp_protocol import (
+    DEFAULT_BUDGET_PROFILE_ID,
+    EVALUATOR_CONTRACT_VERSION,
+    MKPBudgetProfile,
+    MKPExperimentResult,
+    MKPExperimentRun,
+    MKPExperimentSettings,
+    MKPProtocolError,
+    build_full_instance_prompt,
+    execute_mkp_experiment,
+    load_mkp_experiment_settings,
+    prompt_visibility_contract,
+    read_mkp_results_jsonl,
+    write_mkp_experiment_artifacts,
+)
 from roco_ebbo.experiments.tsp_protocol import (
     DATASET_MANIFEST_SCHEMA_VERSION,
     RESULT_SCHEMA_VERSION,
@@ -25,6 +40,13 @@ from roco_ebbo.experiments.tsp_protocol import (
 )
 
 __all__ = [
+    "DEFAULT_BUDGET_PROFILE_ID",
+    "EVALUATOR_CONTRACT_VERSION",
+    "MKPBudgetProfile",
+    "MKPExperimentResult",
+    "MKPExperimentRun",
+    "MKPExperimentSettings",
+    "MKPProtocolError",
     "DATASET_MANIFEST_SCHEMA_VERSION",
     "RESULT_SCHEMA_VERSION",
     "TSPExperimentResult",
@@ -36,10 +58,16 @@ __all__ = [
     "TSPInstance",
     "TSPProtocolError",
     "aggregate_results",
+    "build_full_instance_prompt",
     "create_dataset_manifest",
     "execute_tsp_experiment",
+    "execute_mkp_experiment",
     "load_dataset_manifest",
     "load_tsp_experiment_settings",
+    "load_mkp_experiment_settings",
+    "prompt_visibility_contract",
+    "read_mkp_results_jsonl",
     "read_results_jsonl",
     "write_experiment_artifacts",
+    "write_mkp_experiment_artifacts",
 ]

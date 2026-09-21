@@ -1,5 +1,6 @@
 """Offline LLM provider and versioned RoCo role contracts."""
 
+from roco_ebbo.llm.mkp_mock import MKP_MOCK_PROVIDER_VERSION, MKPMockLLMProvider
 from roco_ebbo.llm.openai_compatible import (
     AUDIT_SCHEMA_VERSION,
     CONTEXT_AUDIT_SCHEMA_VERSION,
@@ -59,6 +60,8 @@ __all__ = [
     "MemoryMutationRequest",
     "MemorySummaryRequest",
     "MemorySummaryResponse",
+    "MKP_MOCK_PROVIDER_VERSION",
+    "MKPMockLLMProvider",
     "MockLLMProvider",
     "OpenAICompatibleConfig",
     "OpenAICompatibleProvider",

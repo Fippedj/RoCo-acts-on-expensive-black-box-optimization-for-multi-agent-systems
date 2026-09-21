@@ -6,12 +6,12 @@ import hashlib
 import json
 import math
 import random
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Generic, Literal, TypeVar
 
-from roco_ebbo.benchmarks import DistanceMatrix
 from roco_ebbo.core import BudgetExceededError, BudgetLedger, Candidate
-from roco_ebbo.evaluation import TSPCodeEvaluator
+from roco_ebbo.evaluation import CodeEvaluator
 from roco_ebbo.llm import (
     PROMPT_VERSION,
     ROLE_TEMPERATURES,
@@ -30,6 +30,8 @@ TraceStatus = Literal[
     "provider_error",
     "budget_exhausted",
 ]
+
+EvaluationInputT = TypeVar("EvaluationInputT")
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,21 +125,23 @@ class CollaborationOutcome:
     stopped_on_budget: bool
 
 
-class RoCoCollaborator:
+class RoCoCollaborator(Generic[EvaluationInputT]):
     """Run initial critique, ``T`` refinement rounds, and final integration."""
 
     def __init__(
         self,
         *,
         provider: RoleLLMProvider,
-        evaluator: TSPCodeEvaluator,
-        distance_matrix: DistanceMatrix,
+        evaluator: CodeEvaluator[EvaluationInputT],
+        distance_matrix: EvaluationInputT,
         ledger: BudgetLedger,
         rounds: int = 3,
         elite_sampling_power: float = 3.0,
         seed: int = 0,
         temperatures: dict[RoCoRole, float] | None = None,
         minimize: bool = True,
+        role_prompts: Mapping[RoCoRole, str] | None = None,
+        prompt_version: str = PROMPT_VERSION,
     ) -> None:
         if rounds < 1:
             raise ValueError("collaboration rounds must be at least 1")
@@ -148,6 +152,17 @@ class RoCoCollaborator:
         resolved_temperatures = {**ROLE_TEMPERATURES, **(temperatures or {})}
         if any(not math.isfinite(value) or value < 0 for value in resolved_temperatures.values()):
             raise ValueError("role temperatures must be finite and non-negative")
+        resolved_prompts = (
+            {role: prompt_for(role) for role in RoCoRole}
+            if role_prompts is None
+            else dict(role_prompts)
+        )
+        if set(resolved_prompts) != set(RoCoRole) or any(
+            not isinstance(value, str) or not value.strip() for value in resolved_prompts.values()
+        ):
+            raise ValueError("role_prompts must define one non-empty prompt for every role")
+        if not prompt_version:
+            raise ValueError("prompt_version must be non-empty")
         self.provider = provider
         self.evaluator = evaluator
         self.distance_matrix = distance_matrix
@@ -155,6 +170,8 @@ class RoCoCollaborator:
         self.rounds = rounds
         self.elite_sampling_power = elite_sampling_power
         self.temperatures = resolved_temperatures
+        self.role_prompts = resolved_prompts
+        self.prompt_version = prompt_version
         self.minimize = minimize
         self.sampling_seed = seed
         self._rng = random.Random(seed)
@@ -396,7 +413,7 @@ class RoCoCollaborator:
             metadata={
                 "role": role.value,
                 "round": round_index,
-                "prompt_version": PROMPT_VERSION,
+                "prompt_version": self.prompt_version,
                 "temperature": self.temperatures[role],
                 "mock_request_index": response.request_index,
             },
@@ -467,7 +484,7 @@ class RoCoCollaborator:
             generation=generation,
             round_index=round_index,
             target_branch=target_branch,
-            prompt=prompt_for(role),
+            prompt=self.role_prompts[role],
             temperature=self.temperatures[role],
             candidates=candidates,
             feedback=feedback,
@@ -609,7 +626,7 @@ class RoCoCollaborator:
                 round_index=request.round_index,
                 target_branch=request.target_branch,
                 temperature=request.temperature,
-                prompt_version=PROMPT_VERSION,
+                prompt_version=self.prompt_version,
                 input_candidates=tuple(candidate.to_dict() for candidate in request.candidates),
                 input_feedback=request.feedback,
                 output_candidate=output_candidate,

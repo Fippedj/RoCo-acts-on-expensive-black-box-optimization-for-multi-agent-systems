@@ -15,10 +15,13 @@ from typing import Any
 from roco_ebbo import __version__
 from roco_ebbo.core import RunManifest
 from roco_ebbo.experiments import (
+    execute_mkp_experiment,
     execute_tsp_experiment,
     load_dataset_manifest,
+    load_mkp_experiment_settings,
     load_tsp_experiment_settings,
     write_experiment_artifacts,
+    write_mkp_experiment_artifacts,
 )
 from roco_ebbo.smoke import load_smoke_settings, run_smoke
 
@@ -53,6 +56,25 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="optional existing dataset manifest to verify and replay instead of generating",
     )
+    mkp_experiment = subparsers.add_parser(
+        "mkp-dry-run",
+        help="run the frozen FSU P01-P06 protocol with the deterministic Mock provider",
+    )
+    mkp_experiment.add_argument(
+        "--config", required=True, type=Path, help="MKP protocol YAML config"
+    )
+    mkp_experiment.add_argument(
+        "--data-root",
+        required=True,
+        type=Path,
+        help="explicit local directory containing the frozen FSU input files",
+    )
+    mkp_experiment.add_argument(
+        "--output-dir",
+        required=True,
+        type=Path,
+        help="new directory for manifest, JSONL, and CSV artifacts",
+    )
     return parser
 
 
@@ -69,6 +91,9 @@ def main() -> None:
         return
     if args.command == "tsp-dry-run":
         _run_tsp_dry_run_command(args.config, args.output_dir, args.dataset_manifest)
+        return
+    if args.command == "mkp-dry-run":
+        _run_mkp_dry_run_command(args.config, args.data_root, args.output_dir)
 
 
 def _run_smoke_command(config_path: Path, runs_dir: Path) -> None:
@@ -218,6 +243,21 @@ def _run_tsp_dry_run_command(
     print(f"output_dir={artifact_root}")
 
 
+def _run_mkp_dry_run_command(config_path: Path, data_root: Path, output_dir: Path) -> None:
+    """Execute only the local frozen-data/Mock path; no transport can be selected."""
+
+    settings = load_mkp_experiment_settings(config_path)
+    experiment_run = execute_mkp_experiment(settings, data_root=data_root)
+    artifact_root = write_mkp_experiment_artifacts(experiment_run, output_dir)
+    print(f"dataset_manifest_checksum={experiment_run.dataset.checksum}")
+    print(f"results={len(experiment_run.results)}")
+    print("split=protocol-only")
+    print("provider=mock")
+    print("network=unused")
+    print("statistics=disabled")
+    print(f"output_dir={artifact_root}")
+
+
 def _new_run_id(seed: int) -> str:
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     return f"smoke-{timestamp}-s{seed}-{uuid.uuid4().hex[:8]}"
@@ -241,3 +281,4 @@ def _append_event(path: Path, event: dict[str, Any]) -> None:
     with path.open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(event, allow_nan=False, sort_keys=True))
         stream.write("\n")
+    (load_mkp_experiment_settings,)

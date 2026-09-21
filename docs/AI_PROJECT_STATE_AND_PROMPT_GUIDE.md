@@ -63,7 +63,8 @@ snapshot:
   stage5_p6_implementation_commit: a94ce0c
   stage5_p6_status_commit: 7302ddd
   stage5_p6_status: "offline TSP protocol/dry-run only; P7a-start query found both P6 commits local-only and no upstream; query live Git"
-  stage5_p7a_status: "designed; query its commit and publication status with live Git; documentation only, no COP implementation/data/experiment"
+  stage5_p7a_design_commit: 1953fc7
+  stage5_p7a_status: "committed locally at P7b-0 start with no upstream; query publication status with live Git; documentation only"
   stage5_complete: false
   agents_md_present: false
   codegraph_present: false
@@ -73,7 +74,7 @@ snapshot:
   openai_compatible_adapter: fake-transport-only
   http_transport_implemented: false
   environment_credentials_supported: false
-  current_benchmark: deterministic TSP-20 smoke
+  current_benchmark: deterministic TSP smoke plus FSU MKP protocol-only offline integration
   python_target: "3.11"
   validation_environment: roco-dev
   stage3_validation:
@@ -132,10 +133,31 @@ snapshot:
     validation: "133 passed; Ruff check/format; mypy 25 source files; doctor; unchanged 12/12, 18/13, 44/28 smoke; git diff --check"
   p7a_multicop_design:
     scope: "candidate COP evidence registry, unified run-record contract, fair-comparison rules, and preregistered statistical plan"
-    candidates: "TSP, MKP, OP, BPP, CVRP, unresolved GLS; only synthetic P6 TSP has an offline protocol"
-    evidence: "ADR-0007 E0-E4; non-TSP candidates remain E0 and are not supported/downloaded/implemented"
+    candidates: "TSP, MKP, OP, BPP, CVRP, unresolved GLS; synthetic P6 TSP and frozen FSU MKP now have separate offline protocols"
+    evidence: "ADR-0007 E0-E4; P7b advances only the authorized FSU MKP snapshot from P7b-0 E2 to an E3 offline Mock protocol"
     statistics: "future E4 cells require >=10 matched seeds, descriptive reporting, 10000 paired-bootstrap 95% interval, and explicit failed-run accounting"
-    next: "P7b may adapt one authorized COP offline only after source/license, inventory/checksum/split, evaluator, and run-plan gates close"
+    next: "G-041/E4, another COP, another download, or real provider work all require separate explicit authorization"
+  p7b0_mkp_data_freeze:
+    dataset: "John Burkardt/Florida State University KNAPSACK_MULTIPLE"
+    local_version: "mkp-fsu-knapsack-multiple-v1; upstream has no release identifier and says last revised 2009-12-08"
+    license: "GNU LGPL v3; verified from the source page and linked license text"
+    inventory: "P01-P06: 18 required numeric input files plus optional P01/P05/P06 reference files; 21 files, 495 bytes"
+    storage: "data/raw/mkp/fsu-knapsack-multiple/; ignored by Git; repository records provenance/checksums only"
+    evidence_level: "E2 data source/inventory only; not E3, implemented, supported, reproduced, or evaluated"
+    gaps: "G-037 source/license and G-038 inventory/checksum partially closed for this snapshot; split and G-039/G-040/G-041 remain open"
+    network_boundary: "one explicitly authorized HTTPS source only; no LLM API, credentials, paid request, mirror, or runtime network"
+  p7b_mkp_offline_protocol:
+    protocol: "mkp-fsu-protocol-v1; P01-P06 all protocol-only, with no train/validation/test"
+    parser: "explicit data root; frozen raw byte/count/SHA contract; unknown/missing/empty/malformed/inconsistent/negative inputs fail closed"
+    evaluator: "list of item-index lists; one bag per item; hard capacities; raw_profit; only selection score=-raw_profit; spawned timeout"
+    visibility: "single full_instance contract; optional reference and claimed optimum excluded; not a white/black or oracle comparison"
+    budget: "mkp-fsu-mock-engineering-v1: 20 calls, 50000 tokens, 16 candidates, 16 valid evals, USD 0.25, 60 seconds"
+    matrix: "root seed 707; P01-P06 x EoH/RoCo = 12 runs; EoH actual 8/8, RoCo actual 18/13 calls/valid"
+    artifacts: "dataset manifest, P7a-shaped JSONL/CSV, six ledgers, raw/normalized audit values, non-time replay checksum; no summary statistics"
+    evidence_level: "E3 for this exact offline Mock protocol only; commit and publication status require live Git"
+    gaps: "FSU MKP subitems G-038/G-039/G-040 closed; G-041, E4, reference optimality, other COPs and paper reproduction remain open"
+    safety: "network=unused; no real API/provider/key/cost; no memory runtime"
+    validation: "151 passed; Ruff check and 52-file format check; mypy 30 source files; doctor; unchanged 12/12, 18/13, 44/28 smokes; 12-run MKP CLI/replay; git diff --check"
 ```
 
 重要：Stage 4 设计已由 `cf1e06b` 冻结并发布，P3a/P3b 分别由 `a0b24b1` 与 `576b1dd`
@@ -288,13 +310,14 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 | Stage 2：确定性 EoH MVP | 已提交并有远端分支 | Mock、预算、Candidate/Population、TSP-20 evaluator、CLI smoke | 100% |
 | Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
 | Stage 4：反思与跨代记忆 | 已由 `59c3357` 发布 | ADR-0004、事实/恢复底座、opt-in 摘要/检索/截断/mutation、显式 resume 与离线消融 | 冻结 V1 离线 Mock 实现 100% |
-| Stage 5：论文实验对齐 | P5 adapter 由 `3842870`、P6 由 `a94ce0c`/`7302ddd` 本地记录、P7a 已设计；提交/发布状态实时查询 | P6 合成 TSP Mock dry-run；P7a 冻结候选 COP、证据等级、run schema、统计和 P7b 闸门；无 HTTP/真实数据/模型实验 | P5/P6 离线子任务完成，P7a 设计完成；Stage 5 实验未完成 |
+| Stage 5：论文实验对齐 | P5/P6/P7a 有本地提交；P7b-0/P7b 与 upstream 状态须实时查询 | P6 合成 TSP Mock dry-run；P7a 证据协议；P7b 为 FSU MKP 提供 `protocol-only` E3 离线 Mock 协议 | P5/P6/P7a 和该 MKP E3 子范围完成；真实实验/论文对齐仍未完成 |
 | Stage 6：多智能体 EBBO | 未实现 | 只有研究分析和路线图 | 0% |
 
 以“六阶段是否具有可运行实现”粗略计数，仍只完成前四阶段的既定 V1 范围，约为 4/6。
 P5 完成 provider 协议与离线安全底座，P6 完成 TSP-only 合成协议和 Mock/fake dry-run，P7a
-完成多 COP/统计证据设计；三者都不是论文原始数据、数值复现或真实实验。Stage 5–6 的真实实验
-与方法研究仍明显更重。
+完成多 COP/统计证据设计，P7b-0/P7b 将获授权的 FSU MKP snapshot 从 E2 冻结推进到窄范围 E3
+parser/evaluator/Mock dry-run。它们都不是论文数值复现、真实模型实验或统计结果；Stage 5–6 的
+真实实验与方法研究仍明显更重。
 
 另一个必须说明的口径：相对于早期 roadmap 中更宽的 Stage 3 清单，当前约完成 70%–80%。roadmap 还提到 prompt 外置为 Jinja/YAML、上下文截断、修复重试、`no-critic`/`no-integrator` 消融和真实小预算运行；这些不在最近一次明确 Stage 3 任务范围内，且真实 API 被明确禁止，因此不是当前验收失败，而是后续候选任务。
 
@@ -444,6 +467,38 @@ status / error_type / error_message
   interval 和所有失败；不使用 p-value/“显著”措辞，不跨 COP 聚合 raw score。P7b 之前须关闭
   G-037–G-041 的来源/许可证、inventory/checksum/split、evaluator 与预注册证据。
 
+### 6.9 Stage 5 P7b-0：FSU MKP 数据来源冻结（E2 only）
+
+- 用户只授权 John Burkardt/Florida State University 的 `KNAPSACK_MULTIPLE` HTTPS 来源；P7b-0
+  下载并验证 P01–P06 的 18 个输入文件，以及源站存在的 P01/P05/P06 三个可选 reference。
+- `docs/data_provenance/mkp_fsu_knapsack_multiple_v1.md` 记录来源/说明/许可 URL、2026-09-21 获取日期、
+  上游 2009-12-08 修订说明、每个文件的 URL、字节数和 SHA-256。LGPL 链接核实为 v3。
+- 21 个原始文件共 495 字节，均为非空纯文本数值文件；保存在 Git 忽略的
+  `data/raw/mkp/fsu-knapsack-multiple/`，版本库不保存原始数据或 reference。
+- 该冻结只为 MKP 部分关闭 G-037 的来源/许可和 G-038 的 inventory/checksum；未定义 split，
+  G-039 evaluator、G-040 实验账本/provider 与 G-041 统计仍开放。MKP 仍不是 E3、已实现、已支持或已复现。
+
+### 6.10 Stage 5 P7b：FSU MKP E3 离线 Mock 协议（已验证；提交/发布状态实时查询）
+
+- `src/roco_ebbo/benchmarks/mkp.py` 只从调用者显式 data root 加载 P01--P06；逐文件验证 P7b-0
+  byte count/SHA-256，拒绝未知/缺失/symlink/空/非整数/超范围/长度不一致/负 capacity 或 weight。
+- `mkp-fsu-protocol-only-v1` 将六个极小实例全部标为 `protocol-only` integration split；没有
+  train/validation/test、参数/模型选择、训练或统计。这是防止把小型适配样本冒充正式实验集。
+- `mkp-fsu-evaluator-v1` 在 spawned subprocess 中执行
+  `heuristic(capacities, weights, profits) -> list[list[int]]`；重复物品、非法索引和超容量均无效。
+  来源目标是 maximize `raw_profit`，现有统一 Top-N 唯一选择分数仍为 minimize `-raw_profit`；
+  normalized score 只审计，不用于选择或 optimality gap。
+- 唯一 `full_instance` visibility 包含 capacity/weight/profit/目标/约束/签名，明确排除 optional
+  reference 与 claimed optimum；它不是 white/black 对比或昂贵 oracle。reference 不进入 prompt/打分，
+  也不被假定为已验证最优解。
+- `mkp-fsu-mock-engineering-v1` 的每 run 相同 ceiling 为 20 calls、50000 Mock tokens、16 candidates、
+  16 valid evals、USD 0.25、60 seconds。固定 root seed 707 的 P01--P06 × EoH/RoCo 共 12 run；
+  实际 EoH 为 8 calls/8 valid，RoCo 为 18/13，provider 固定 Mock、`network=unused`，memory 未接入。
+- 工件只有 dataset manifest、P7a-shaped JSONL/CSV、六类 ledger、raw/normalized audit 值和忽略
+  wall time 的 replay checksum；不生成统计 summary、interval、排名、性能或跨 COP 结论。
+- 这只关闭 FSU MKP 的 G-038/G-039/G-040 E3 子项。G-041、E4/真实 provider、reference 最优性、
+  其他 COP 与论文数值复现仍开放；实现和发布状态一律实时 Git 查询。
+
 ## 7. 当前审计结论
 
 ### 7.1 在最近明确 Stage 3 范围内通过的项目
@@ -511,14 +566,16 @@ P5 已完成无 HTTP 实现的 OpenAI-compatible EoH/RoCo adapter，以及 fake 
 fake token counter 和 synthetic price table 的离线验证；这只是 Stage 5 基础设施子任务。
 P6 已完成合成确定性 TSP-50/100/200 的 checksum/train-test 协议和 72 条 Mock/fake dry-run，
 但不是论文原始数据或数值复现。以下登记的证据缺口仍未解决：G-012、G-016、G-021、G-034、
-G-035、G-036；P7a 还登记了 G-037–G-041，但没有关闭它们。
+G-035、G-036。P7b-0/P7b 只把获授权的 FSU MKP snapshot 推进到 `protocol-only` E3，关闭该
+snapshot 的 G-037–G-040 子项；G-041 和任何 E4/正式实验仍未关闭。
 以下内容仍未实现：
 
 - 具体 HTTP/TLS/auth transport、真实 endpoint/key 注入、真实 provider 兼容性
   smoke、模型 tokenizer/价格核验或任何付费调用；
 - 论文原始 TSP 数据、实例数量、prompt、timeout、预算和 white-box/black-box 精确证据；
 - 非 Mock 的实际方法比较、真实模型成本/Tokenizer 核验与受授权的真实实验；
-- MKP、OP、BPP、CVRP 和 GLS 的获授权离线数据适配、evaluator 与 dry-run；
+- MKP 的正式 train/validation/test、reference 最优性、真实 provider/E4 与统计；OP、BPP、CVRP 和
+  GLS 连获授权数据来源也没有；
 - 受授权真实实验、预注册统计执行、置信区间/结果报告和论文数值报告。
 
 ### Stage 6
@@ -541,7 +598,9 @@ P0  Stage 3 最终审计/小范围加固（已完成）
   -> P5  OpenAI-compatible adapter，仅以 fake transport 离线验证（`3842870`；发布状态实时查询）
   -> P6  Stage 5 TSP 协议与 Mock/fake dry-run（`a94ce0c`；已实现，发布状态实时查询）
   -> P7a 多 COP/统计协议与证据设计（已设计；提交/发布状态实时查询；不自动授权真实 API）
-  -> P7b 获授权 COP 的离线数据适配与 Mock/fake dry-run（下一任务）
+  -> P7b-0 获授权 FSU MKP 来源/许可/inventory/checksum 冻结（E2；实现/发布状态实时查询）
+  -> P7b FSU MKP parser/evaluator/protocol-only split 与 Mock/fake dry-run（E3 已验证；提交/发布状态实时查询）
+  -> 后续 Stage 5 实施（须另行授权具体 COP/E4 数据、provider 与预算；G-041 仍开放）
   -> P8  Stage 6 EBBO 设计规格
   -> P9  EBBO 最小基线和角色控制层
 ```
@@ -739,13 +798,17 @@ Mock 仍为默认，EoH/RoCo adapter 只以 fake transport 验证，Stage 4 memo
 这不代表整个 Stage 5 完成；当前 HEAD、upstream 与发布状态仍须用实时 Git 核验。
 
 P6 已由本地提交 `a94ce0c`/`7302ddd` 记录：合成确定性 TSP-50/100/200 的 manifest/checksum、
-train/test 分离、72 条 Mock/fake dry-run、相同硬预算和 EoH/RoCo 结果 schema。P7a 已设计：
-ADR-0007 与多 COP 协议只冻结候选、证据、run record 和统计计划；其提交与发布状态须实时 Git 查询。white-box/black-box
+train/test 分离、72 条 Mock/fake dry-run、相同硬预算和 EoH/RoCo 结果 schema。P7a 设计提交为
+`1953fc7`：ADR-0007 与多 COP 协议只冻结候选、证据、run record 和统计计划；发布状态须实时 Git 查询。white-box/black-box
 仅为 prompt visibility 条件，非昂贵 oracle；P6/P7a 都不是论文原始数据、数值复现或真实模型实验。
-P6 通过 133 tests、Ruff、mypy、doctor 和原有三个离线 smoke；G-012、G-016、G-021、G-034–G-041
-仍未解决。P7a 开始时 P6 没有 upstream、尚未推送；当前发布状态仍须以实时 Git 核验。
+P6 通过 133 tests、Ruff、mypy、doctor 和原有三个离线 smoke。P7b-0 从用户授权的 FSU HTTPS 来源
+冻结 `mkp-fsu-knapsack-multiple-v1`：LGPL v3、P01–P06 的 18 个输入和 3 个可选 reference、逐文件
+checksum；原始文件在 Git 忽略目录。P7b 在此 E2 数据上实现并验证 `mkp-fsu-protocol-v1`：显式
+data root/checksum parser、全 `protocol-only` split、minimize `-raw_profit` evaluator、单一
+`full_instance`/Mock visibility，以及 12 条 EoH/RoCo run 的六类账本和 replay 工件。该范围只到 E3，
+不执行 optional reference、统计、真实 provider 或论文数值复现。
 
-下一推荐任务是 P7b：在明确数据来源与许可证授权后，为一个已登记 COP 实现离线数据适配和 Mock/fake
-dry-run。Stage 5 仍未完成；P7b 不得自动下载数据、发起真实 API、付费实验或实现 EBBO。任何具体
-HTTP transport、认证、真实 tokenizer/价格表、provider smoke 或真实实验必须作为独立任务另行授权
-并设置明确硬预算；HEAD、upstream 与发布状态仍用实时 Git 核验。
+P7b 的提交与发布状态必须通过实时 Git 查询（不得纳入用户的 `.vscode/settings.json` 或 Git 忽略
+原始数据）。任何后续 COP 数据、E4/真实 provider、G-041 统计或
+付费实验都必须由用户另行明确授权来源、许可证、版本、预算与结论边界。Stage 5 仍未完成；不得自动
+下载其他数据、调用真实 API、实现其他 COP/EBBO；HEAD、upstream 与发布状态仍用实时 Git 核验。

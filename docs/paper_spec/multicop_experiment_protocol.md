@@ -2,12 +2,12 @@
 
 ## 0. 状态、范围与禁止结论
 
-本文件是 P7a 的冻结设计，配合 ADR-0007 使用；它不是 COP 实现、数据清单、实验配置或结果报告。
-P7a 已设计但尚未提交。P6 的 `a94ce0c`/`7302ddd` 仅在本地，未设置 upstream；任何后续会话必须用
-实时 Git 查询确认该状态。
+本文件起源于 P7a 冻结设计，配合 ADR-0007 使用；它本身不是性能结果报告。P7a 的提交、HEAD、
+upstream 和发布状态必须用实时 Git 查询，不能依赖状态文档中的历史观察。
 
-唯一已有离线协议的是 P6 合成确定性 TSP-50/100/200。它不提供论文原始数据、真实模型实验或统计
-证据。MKP、OP、BPP、CVRP 和 `GLS` 在此只作候选登记，均未被实现、下载、支持或复现。
+P6 合成确定性 TSP-50/100/200 是 TSP 离线协议；P7b 又只为获授权的 FSU P01--P06 MKP snapshot
+验证了 `protocol-only` E3 Mock 协议。两者都不提供论文原始数据、真实模型实验或统计证据。OP、BPP、
+CVRP 和 `GLS` 仍只是候选，未被实现、下载、支持或复现。
 
 在没有 E4 真实实验、完整 provenance 和预注册工件前，禁止写出性能、显著性、泛化、优越性、
 跨问题总排名或论文复现结论。即使未来取得 E4，结论也只可限于预注册的精确 benchmark/version/
@@ -21,7 +21,7 @@ instance/split/provider/budget 条件。
 | 候选问题 | 暂定目标方向与约束字段 | 本地实例来源/许可证状态 | 规模与指标状态 | 已验证证据 | 未知项与进入 P7b 前的阻断 |
 |---|---|---|---|---|---|
 | TSP | minimize closed-tour length；permutation、一次访问、闭环为 P6 合成协议的约束 | P6 synthetic generator，非论文数据；没有论文 corpus 来源或许可证 | P6 仅为 50/100/200；记录 finite tour length，若用 gap 必须先冻结 reference | E3 仅适用于 P6 synthetic/Mock protocol | 论文实例、许可证、完整 inventory/checksum、test 数量、timeout、prompt 和真实实验均未知（G-012/G-016/G-021/G-034–G-036） |
-| MKP | 暂定 maximize value；容量/多背包约束、物品表示和可行性尚待版本化 | 未登记来源、release 或许可证 | 未冻结规模、metrics/reference 或 evaluator | E0 | G-037–G-040：来源/许可证、instances/checksum/split、目标/约束/evaluation 均未闭合 |
+| MKP | FSU 01 Multiple Knapsack：maximize raw profit；每物品至多一个背包、capacity 硬约束；系统选择 `-raw_profit` | 用户授权 John Burkardt/FSU snapshot；本地 ID `mkp-fsu-knapsack-multiple-v1`；LGPL v3；上游无 release ID，仅有 2009-12-08 revision | P01–P06，6–10 items/1–4 bags；`protocol-only`；`mkp-fsu-evaluator-v1`；reference 不作最优值 | E3 仅适用于 `mkp-fsu-protocol-v1`/Mock | 数据极小且无正式 train/test；不支持统计、真实 provider、optimality gap、论文复现或性能结论；G-041 与 E4 均开放 |
 | OP | 暂定 maximize collected reward；路由预算、访问和奖励规则尚待版本化 | 未登记来源、release 或许可证 | 未冻结规模、metrics/reference 或 evaluator | E0 | 同上；不得把任意 Orienteering 变体当作论文/项目 benchmark |
 | BPP | 暂定 minimize bins；容量、item dimensions、在线/离线和可行性尚待版本化 | 未登记来源、release 或许可证 | 未冻结规模、metrics/reference 或 evaluator | E0 | 同上；目标/约束变体会改变比较语义 |
 | CVRP | 暂定 minimize route cost；需求、车辆容量、depot、车辆数和可行性尚待版本化 | 未登记来源、release 或许可证 | 未冻结规模、metrics/reference 或 evaluator | E0 | 同上；现有 120 s 只是旧工程占位，非 CVRP 论文 timeout 证据（G-016） |
@@ -91,10 +91,14 @@ P6 的 `24/120000/24/24/1 USD/120 s` 仅是 TSP Mock dry-run profile，不能自
 
 ### 4.2 数据与 split
 
-训练、validation（若使用）和 test 必须由版本化 split policy 指定且互不重叠；任一语义等价/同一
+正式训练、validation（若使用）和 test 必须由版本化 split policy 指定且互不重叠；任一语义等价/同一
 geometry/重复 instance checksum 都不得跨 split。只允许用 train/validation 做 prompt、方法或预算
 选择；test 必须在设计冻结后一次性执行，且 run record 显式标出 split。不能确认 provenance 或
 checksum 的实例不得进入任何 split。
+
+若实例量或证据不足以形成可信的 train/validation/test，允许版本化 `protocol-only` integration split，
+但该 split 中所有实例只能验证 parser/evaluator/ledger/replay，不得训练、调参、模型选择、统计、排名或
+性能结论。`mkp-fsu-protocol-only-v1` 是这一规则的首个实例，并非正式 test split。
 
 ### 4.3 prompt visibility
 
@@ -133,3 +137,6 @@ P7b 只能在用户明确授权数据来源与使用后，为已登记的单个 
 每个拟实施问题需先在 G-037–G-041 中附上关闭证据：source/release/license、实例 inventory/checksum/
 split、objective/constraint/evaluator/timeout/metrics、预算/seed/visibility/provider contract，以及测试计划。
 P7b 不授权下载、真实网络/provider、密钥、付费请求、性能/显著性报告或其他 COP 的顺带实现。
+
+FSU MKP 的 P7b 已在上述窄边界达到 E3：这只关闭该 snapshot 的 G-038/G-039 和 G-040 Mock 子项；
+G-041、E4、其他 COP、真实 provider 与论文复现仍受本节闸门约束。

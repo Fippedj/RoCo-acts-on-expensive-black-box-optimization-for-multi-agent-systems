@@ -1,0 +1,49 @@
+# P7b engineering dry-run for the frozen FSU 01 Multiple Knapsack snapshot.
+# This is offline protocol validation, not a paper, statistical, or performance experiment.
+protocol:
+  schema_version: roco-mkp-fsu-experiment-config-v1
+  dry_run: true
+
+llm:
+  provider: mock
+  network: unused
+  temperatures:
+    explorer: 1.3
+    exploiter: 0.8
+    critic: 1.0
+    integrator: 1.0
+
+dataset:
+  source_version: mkp-fsu-knapsack-multiple-v1
+  protocol_version: mkp-fsu-protocol-v1
+  split_policy_version: mkp-fsu-protocol-only-v1
+  split: protocol-only
+  instances: [p01, p02, p03, p04, p05, p06]
+
+experiment:
+  root_seed: 707
+  methods: [eoh, roco]
+  prompt_visibility: full_instance
+  budgets:
+    # A new engineering-only profile; no value is inherited from P6 or the paper.
+    profile_id: mkp-fsu-mock-engineering-v1
+    max_llm_calls: 20
+    max_tokens: 50000
+    max_generated_candidates: 16
+    max_valid_evals: 16
+    max_cost: 0.25
+    max_wall_time: 60.0
+    cost_currency: USD
+
+evolution:
+  population_size: 4
+  generations: 1
+  candidates_per_operator: 1
+  collaboration_rounds: 2
+  elite_sampling_power: 3.0
+
+benchmark:
+  id: mkp-01
+  evaluator_contract: mkp-fsu-evaluator-v1
+  # Per-candidate engineering safety limit, not a paper timeout.
+  evaluator_timeout_seconds: 3.0

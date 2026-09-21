@@ -7,17 +7,18 @@ import json
 import math
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from roco_ebbo.benchmarks import DistanceMatrix
 from roco_ebbo.core import BudgetExceededError, BudgetLedger, Candidate
-from roco_ebbo.evaluation import TSPCodeEvaluator
+from roco_ebbo.evaluation import CodeEvaluator
 from roco_ebbo.evolution.collaboration import CollaborationTrace, RoCoCollaborator
 from roco_ebbo.evolution.operators import EOH_OPERATORS, EoHOperator
 from roco_ebbo.llm import LLMProvider
 
 if TYPE_CHECKING:
     from roco_ebbo.memory.runtime import MemoryGenerationTrace, MemoryRuntime
+
+EvaluationInputT = TypeVar("EvaluationInputT")
 
 
 @dataclass(slots=True)
@@ -118,15 +119,15 @@ class EngineResumeState:
             raise ValueError("resume population must contain its configured number of candidates")
 
 
-class EoHEngine:
+class EoHEngine(Generic[EvaluationInputT]):
     """Generate one candidate per configured E1/E2/M1/M2 operation and select Top-N."""
 
     def __init__(
         self,
         *,
         provider: LLMProvider,
-        evaluator: TSPCodeEvaluator,
-        distance_matrix: DistanceMatrix,
+        evaluator: CodeEvaluator[EvaluationInputT],
+        distance_matrix: EvaluationInputT,
         ledger: BudgetLedger,
         population_size: int,
         generations: int,

@@ -3,10 +3,12 @@
 Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic Heuristic Design**, followed by a migration toward multi-agent expensive black-box optimization (EBBO).
 
 This repository contains deterministic Stage 2/3 baselines, the published Stage 4 V1 opt-in offline
-memory path, a Stage 5 TSP-only Mock dry-run, and a P7a multi-COP/statistics design. It does **not**
+memory path, a Stage 5 TSP-only Mock dry-run, a P7a multi-COP/statistics design, and one P7b FSU MKP
+offline integration protocol. It does **not**
 claim to be the authors' official implementation or a completed paper reproduction. No HTTP transport,
-real-provider interoperability run, external COP data acquisition, or paper experiment has been
-authorized or performed.
+real-provider interoperability run, statistical experiment, or paper experiment has been performed.
+The only external COP snapshot is the narrowly authorized, Git-ignored FSU P01--P06 MKP data used by
+the P7b offline integration protocol.
 
 ## Recommended local setup
 
@@ -51,6 +53,8 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `configs/smoke/tsp_roco_mock.yaml` | Deterministic Stage 3 four-role collaboration configuration |
 | `configs/smoke/tsp_memory_mock.yaml` | Opt-in two-generation Stage 4 offline memory configuration |
 | `configs/experiments/tsp_mock_dry_run.yaml` | Fixed three-seed TSP protocol dry-run; Mock only, not a paper experiment |
+| `configs/experiments/mkp_fsu_mock_dry_run.yaml` | P01--P06 protocol-only MKP engineering dry-run; Mock/network-unused only |
+| `docs/data_provenance/mkp_fsu_knapsack_multiple_v1.md` | Authorized FSU source/license, raw checksums, parser/evaluator/split and E3 boundary |
 | `docs/paper_spec/multicop_experiment_protocol.md` | P7a candidate-COP registry, run-record contract, comparability, and preregistered analysis plan |
 | `configs/providers/openai_compatible_fake.example.yaml` | Documentation-only, no-key fake-transport adapter example |
 | `src/roco_ebbo/llm/openai_compatible.py` | Transport-neutral EoH/RoCo adapter and audit contracts; no HTTP implementation |
@@ -180,18 +184,46 @@ protocol values, not paper data or performance reproduction. See
 
 ## Stage 5 P7a multi-COP/statistics design
 
-P7a is designed in the working tree and intentionally uncommitted. It registers TSP, MKP, OP, BPP,
-CVRP, and an unresolved `GLS` label as candidate COPs; only TSP has an existing offline protocol, and
-its P6 inventory remains synthetic. None of the other candidates is supported, downloaded, adapted, or
-reproduced. ADR-0007 defines E0--E4 evidence levels, while
+P7a registers TSP, MKP, OP, BPP, CVRP, and an unresolved `GLS` label as candidate COPs. ADR-0007 defines
+E0--E4 evidence levels, while
 `docs/paper_spec/multicop_experiment_protocol.md` freezes the cross-COP run record, fair-budget/split/
 visibility/provider rules, and future statistical plan.
 
-The P6 commits `a94ce0c` and `7302ddd` are local-only: this branch has no upstream in the P7a-start
-Git check. Treat that observation as a handoff note and query live Git for current HEAD, upstream, and
-publication state. P7b is the next task: only after explicit data-source and license authorization may
-it implement one registered COP's offline data adapter and Mock/fake dry-run. It does not authorize a
-download, network/provider use, credentials, paid requests, performance claims, or statistical results.
+Query live Git for current HEAD, upstream, and publication state. P7a does not authorize network/provider
+use, credentials, paid requests, performance claims, or statistical results.
+
+## Stage 5 P7b FSU MKP offline protocol
+
+P7b uses only the previously authorized John Burkardt/FSU `KNAPSACK_MULTIPLE` snapshot in the ignored
+`data/raw/mkp/fsu-knapsack-multiple/` directory. `mkp-fsu-protocol-v1` verifies every raw byte against
+the committed provenance contract, parses P01--P06 fail-closed, and marks all six instances
+`protocol-only`: there is deliberately no train/validation/test or formal statistical use.
+
+Candidate code returns one item-index list per knapsack. Duplicate assignment, out-of-range items,
+capacity violations, malformed output, runtime failure, and timeout are structured failures. Source
+profit is maximized, while the unchanged global Top-N path strictly minimizes `score=-raw_profit`.
+Optional P01/P05/P06 reference files are never placed in prompts, never used for selection, and are not
+claimed to be verified optima.
+
+The sole visibility contract is versioned `full_instance` capacity/weight/profit information, not a
+white/black comparison or expensive oracle. The engineering-only
+`mkp-fsu-mock-engineering-v1` profile gives EoH and RoCo identical ceilings of 20 calls, 50000 Mock
+tokens, 16 candidates, 16 valid evaluations, USD 0.25, and 60 seconds. With root seed 707, the 12-run
+P01--P06 × EoH/RoCo matrix records EoH 8/8 and RoCo 18/13 actual calls/valid evaluations, manifest,
+JSONL/CSV, raw/normalized audit values, six ledgers, and non-time replay checksums. It produces no
+summary statistics, interval, ranking, cross-COP result, or model-performance claim.
+
+```bash
+PYTHONPATH="$PWD/src" python -m roco_ebbo mkp-dry-run \
+  --config configs/experiments/mkp_fsu_mock_dry_run.yaml \
+  --data-root data/raw/mkp/fsu-knapsack-multiple \
+  --output-dir /tmp/roco-mkp-dry-run
+```
+
+This exact offline Mock contract is E3 evidence only. It does not authorize another download/COP,
+reference optimality, G-041 statistical execution, a real provider, paper reproduction, or performance
+and superiority conclusions. P7b implementation, commit, and publication status must be checked with
+live Git rather than inferred from this historical working-tree note.
 
 ## Original repository purpose
 

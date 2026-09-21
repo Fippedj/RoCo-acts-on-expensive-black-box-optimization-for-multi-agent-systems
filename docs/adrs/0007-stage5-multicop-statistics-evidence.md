@@ -1,6 +1,6 @@
 # ADR-0007：Stage 5 多 COP 实验、统计与证据边界
 
-- 状态：Accepted for Stage 5 P7a design; no implementation is authorized
+- 状态：Accepted；P7a 本身不授权实现，FSU MKP P7b 由后续用户指令单独授权
 - 日期：2026-09-21
 - 上游：ADR-0001 至 ADR-0006、`docs/paper_spec/multicop_experiment_protocol.md`
 - 范围：跨组合优化问题（COP）的实验记录、证据等级、统计预注册和 P7b 前置条件
@@ -83,3 +83,11 @@ interval 表达不确定性。P6 的三个 Mock seeds 不满足该规划下的�
 分数被静默纳入实验。代价是 P7a 不给出 COP 性能结论、不提供可运行适配器，也不关闭数据或论文证据
 缺口。P7b 的提交边界必须仅包含已获授权且已登记的离线数据适配、对应 dry-run、测试和 manifest；
 不得顺带接入真实 provider、下载未授权数据或开始性能/显著性报告。
+
+## P7b 后续记录
+
+P7b-0/P7b 按本 ADR 闸门仅处理获授权的 John Burkardt/FSU `KNAPSACK_MULTIPLE` snapshot。
+`mkp-fsu-protocol-v1` 已以 `protocol-only` split、严格 checksum parser、版本化 evaluator、单一
+full-instance/Mock visibility、独立工程预算和 12 条 replayable dry-run 达到 E3。该后续记录不修改
+E4/统计门槛：G-041、真实 provider、reference 最优性、其他 COP、性能/显著性/泛化/优越性和论文
+数值复现均仍未授权、未执行。
