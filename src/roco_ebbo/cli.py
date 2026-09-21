@@ -14,6 +14,12 @@ from typing import Any
 
 from roco_ebbo import __version__
 from roco_ebbo.core import RunManifest
+from roco_ebbo.experiments import (
+    execute_tsp_experiment,
+    load_dataset_manifest,
+    load_tsp_experiment_settings,
+    write_experiment_artifacts,
+)
 from roco_ebbo.smoke import load_smoke_settings, run_smoke
 
 
@@ -31,6 +37,22 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="ignored output root for logs and manifests (default: runs)",
     )
+    experiment = subparsers.add_parser(
+        "tsp-dry-run",
+        help="run the offline TSP-50/100/200 protocol with the deterministic Mock provider",
+    )
+    experiment.add_argument("--config", required=True, type=Path, help="protocol YAML config")
+    experiment.add_argument(
+        "--output-dir",
+        required=True,
+        type=Path,
+        help="new directory for dataset manifest, JSONL, and CSV artifacts",
+    )
+    experiment.add_argument(
+        "--dataset-manifest",
+        type=Path,
+        help="optional existing dataset manifest to verify and replay instead of generating",
+    )
     return parser
 
 
@@ -44,6 +66,9 @@ def main() -> None:
         return
     if args.command == "smoke":
         _run_smoke_command(args.config, args.runs_dir)
+        return
+    if args.command == "tsp-dry-run":
+        _run_tsp_dry_run_command(args.config, args.output_dir, args.dataset_manifest)
 
 
 def _run_smoke_command(config_path: Path, runs_dir: Path) -> None:
@@ -161,6 +186,36 @@ def _run_smoke_command(config_path: Path, runs_dir: Path) -> None:
     if smoke_run.result.memory_traces:
         print(f"memory_runtime_trace={memory_trace_path}")
         print(f"memory_root={run_directory / 'memory'}")
+
+
+def _run_tsp_dry_run_command(
+    config_path: Path,
+    output_dir: Path,
+    dataset_manifest_path: Path | None,
+) -> None:
+    """Execute only the local Mock protocol; no provider transport is available here."""
+
+    settings = load_tsp_experiment_settings(config_path)
+    dataset = (
+        None if dataset_manifest_path is None else load_dataset_manifest(dataset_manifest_path)
+    )
+    memory_root = (
+        None
+        if "memory_roco" not in settings.methods
+        else output_dir.parent / f"{output_dir.name}.memory-artifacts"
+    )
+    experiment_run = execute_tsp_experiment(
+        settings,
+        dataset=dataset,
+        memory_artifacts_root=memory_root,
+    )
+    artifact_root = write_experiment_artifacts(experiment_run, output_dir)
+    print(f"dataset_manifest_checksum={experiment_run.dataset.checksum}")
+    print(f"results={len(experiment_run.results)}")
+    print(f"summaries={len(experiment_run.summaries)}")
+    print("provider=mock")
+    print("network=unused")
+    print(f"output_dir={artifact_root}")
 
 
 def _new_run_id(seed: int) -> str:

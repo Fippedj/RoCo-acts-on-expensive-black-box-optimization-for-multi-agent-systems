@@ -43,6 +43,9 @@
 | G-031 | provider 响应与错误分类 | 必须自行设计 | 论文未给 wire schema 或失败 taxonomy | 单 choice、非流式严格 JSON；envelope/choice/message/usage/角色输出拒绝未知/缺失/重复/non-finite；分类 timeout、retryable transport、auth/permission、rate limit、malformed JSON、schema 和 provider error | 供应商扩展字段必须通过新 contract 版本显式决定，不能静默放宽 | ADR-0005；fake transport 已覆盖 |
 | G-032 | accepted attempt、usage 与价格结算 | 必须自行设计 | ADR-0001 把在途结算、真实价格留待 provider 阶段 | 发送前以 input + max output + 最大费用预检；accepted attempt 即计 call，合法 usage 按版本化 synthetic price table 结算；未知/非法 usage 不伪造 tokens/cost 并关闭 adapter 后续发送；接受后实际超支如实入账再停止 | synthetic 价格不是厂商价格；真实 model/币种/价格版本需另行核验 | ADR-0005；fake transport 已覆盖 |
 | G-033 | 离线 adapter 与真实实验边界 | 必须自行设计 | 工程验证与论文性能证据不是同一层级 | P5 仅证明 EoH/RoCo adapter 在 fake transport 下的请求、响应、重试、预算、上下文和脱敏契约；Stage 4 memory provider、真实 API 和实验均未接入 | 不得把“adapter 已离线验证”写成“真实 provider 已验证”或“论文复现完成” | ADR-0005；真实互操作/Stage 5 实验后续 |
+| G-034 | TSP-50/100/200 数据 inventory 与 train/test 划分 | 部分论文明确 + 必须自行设计 | `S009` 明确 TSP 实验并举例训练集为 5 个实例；表格出现 TSP-50/100/200；当前材料未唯一给出所有坐标分布、generator、seeds、test count 或逐实例清单 | ADR-0006 的 dry-run 使用版本化 unit-square 坐标规则、派生 seed、per-instance/manifest SHA-256 和 geometry checksum；默认每 split/size 一例明确为工程值 | 不得称为论文数据或用其数值作复现；真实实验前须获得/核验数据来源、test inventory 和 split policy | Stage 5 P6；真实 TSP 实验前关闭 |
+| G-035 | white-box/black-box prompt 内容与可见字段 | 论文语义明确，完整实现细节不足 | `S003` 说明两种设置；`S011` 指出 prompts 未完整可执行且 Critic 有歧义；本地材料不足以冻结逐字 prompt 和字段选择 | `roco-prompt-visibility-v1` 将其定义为信息可见性条件：black-box 不含坐标/矩阵/evaluator internals；Mock 只记录 metadata，不生成效果主张 | 真实 prompt 模板、上下文、模型和版本必须先审计；不能将提示词 black-box 混同昂贵 oracle black-box | ADR-0006；真实 provider 前关闭 |
+| G-036 | P6 dry-run 实例数、seed、运行长度与公平上限 | 必须自行设计 | 论文给出部分全局参数，但 G-011/G-012/G-021 仍使完整 run budget/multiplicity 不可由本地材料唯一确定 | 固定 3 seed、每 split/size 1 instance、`N=4`、一代、`T=2` 和六类相同 hard ceilings；所有值写入 config/result | 这些仅验证接口与账本；不得描述为论文的三/四次独立运行、400 budget 或方法公平结果 | ADR-0006；真实实验设计前重定 |
 
 ## 当前阻断项
 
@@ -60,5 +63,5 @@ P4 由 `c7a1ae4` 实现并包含在 Stage 4 发布基线 `59c3357` 中，已验�
 `38428700d8f272f8107e8cd042f5fdec24d3e33d` 按 ADR-0005 使用 injected fake transport
 离线验证；仓库没有 HTTP transport，不读取真实凭据、不发起网络，Mock 仍为默认。这不包含
 真实 API、Stage 4 memory-provider 接线、真实模型互操作/实验或论文数值复现。当前 HEAD、
-upstream 与发布状态必须用实时 Git 查询。下一任务 P6 仅为 TSP 实验协议与 Mock/fake
-dry-run；上述任何真实副作用仍需单独授权。
+upstream 与发布状态必须用实时 Git 查询。P6 的 TSP protocol/Mock dry-run 由 ADR-0006
+界定；它不关闭 G-012/G-016/G-021/G-034/G-035，也不授权任何真实副作用。

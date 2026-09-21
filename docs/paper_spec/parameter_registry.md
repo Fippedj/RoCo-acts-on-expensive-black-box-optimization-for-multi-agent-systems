@@ -28,6 +28,11 @@
 | `run.seed` | 未披露 | p.10–16 / `S011` | 否 | 2025 | 纯工程默认值；必须记录所有随机源 |
 | 普通训练超时 | 当前精读材料未给出可独立核验值 | `S009` 涵盖 p.12–13 实验设置，但无逐项原文；`S011` | 否/证据不足 | 60 s | 现有配置值仅作工程占位，需在 Stage 2 evaluator 协议前复核 PDF |
 | CVRP 训练超时 | 当前精读材料未给出可独立核验值 | 同上 | 否/证据不足 | 120 s | 现有配置值仅作工程占位，不能称论文默认值 |
+| TSP 规模 | TSP-50、TSP-100、TSP-200 出现在结果表/GLS 比较 | p.6–7 / `T001`–`T004` | 是（规模），否（完整 instances） | 三个规模均由版本化 deterministic generator 提供 | 坐标分布、种子、test count 与 corpus checksum 未由当前材料确认；见 G-034 |
+| TSP 训练实例数 | 举例为 5 个 TSP instances | p.5、p.12–13 / `S009` | 是（训练数陈述），否（具体实例） | P6 default 每 split/size 1，仅为快速 dry-run | 工程 inventory 不得替代论文训练集或暗示相同数据分布 |
+| P6 dry-run seeds / split count | 未披露到可执行粒度 | `S011`；G-018/G-034 | 否 | `[101, 202, 303]`，每规模 train/test 各 1 | 固定三 seed 是接口验收条件，不是论文的独立运行设定 |
+| P6 all-method hard ceilings | 未披露统一可执行规则 | G-012/G-021 | 否 | 24 calls、120000 Mock tokens、24 candidates、24 valid evals、1 USD、120 s | ADR-0006 工程公平定义为同上限，实际消耗另报；不是论文预算 |
+| white/black visibility prompt | 两种 setting 存在，但完整 prompt 未可执行披露 | p.1–2 / `S003`；`S011` | 部分明确 | `roco-prompt-visibility-v1` metadata-only Mock condition | 不是昂贵 oracle；真实 prompt 内容/效果仍为 G-035 |
 | EoH E1/E2/M1/M2 每算子候选数 | 未披露到当前 source blocks | p.3 / `S005` | 否 | 待 Stage 2 配置化 | 必须纳入 candidate/call 数量推演 |
 | Top-N tie-break | 未披露 | p.3 / `S005` | 否 | 稳定排序 + 明示的候选 ID tie-break（待实现 ADR） | 不得依赖并行完成顺序 |
 

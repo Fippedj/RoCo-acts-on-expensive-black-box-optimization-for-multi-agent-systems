@@ -42,12 +42,14 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `docs/adrs/0003-stage3-roco-collaboration.md` | Stage 3 state machine, failure, trace, and memory-boundary decisions |
 | `docs/adrs/0004-stage4-reflection-memory-design.md` | Stage 4 memory, retrieval, truncation, commit, and recovery decisions |
 | `docs/adrs/0005-offline-openai-compatible-adapter.md` | Stage 5 transport injection, strict response, retry, budget, and security decisions |
+| `docs/adrs/0006-stage5-tsp-protocol-dry-run.md` | TSP-50/100/200 inventory, result schema, fair ceilings, and offline dry-run boundary |
 | `docs/RoCo_reproduction_and_EBBO_roadmap.md` | Six-stage reproduction and migration plan |
 | `docs/paper/` | Source-grounded reading notes and paper-gap analysis |
 | `configs/paper_defaults.yaml` | Paper-aligned settings, annotated with non-disclosed items |
 | `configs/smoke/tsp_mock.yaml` | Unchanged Stage 2 deterministic EoH regression configuration |
 | `configs/smoke/tsp_roco_mock.yaml` | Deterministic Stage 3 four-role collaboration configuration |
 | `configs/smoke/tsp_memory_mock.yaml` | Opt-in two-generation Stage 4 offline memory configuration |
+| `configs/experiments/tsp_mock_dry_run.yaml` | Fixed three-seed TSP protocol dry-run; Mock only, not a paper experiment |
 | `configs/providers/openai_compatible_fake.example.yaml` | Documentation-only, no-key fake-transport adapter example |
 | `src/roco_ebbo/llm/openai_compatible.py` | Transport-neutral EoH/RoCo adapter and audit contracts; no HTTP implementation |
 | `src/roco_ebbo/` | RoCo / EBBO implementation package |
@@ -153,6 +155,26 @@ responses and a fake token counter. Passing it means the adapter contract is off
 not establish HTTP/TLS/auth compatibility, validate a real tokenizer or price, evaluate model output
 quality, or reproduce paper results. Any real transport, credential use, network call, or paid run
 requires a separate explicit authorization and verification task.
+
+## Stage 5 TSP protocol dry-run
+
+The `tsp-dry-run` command creates or verifies a deterministic TSP-50/TSP-100/TSP-200 dataset manifest,
+then executes the configured train/test, three-seed, prompt-visibility, and method matrix using only the
+existing Mock provider. It writes a SHA-256-checked `dataset_manifest.json`, strict `results.jsonl` and
+`results.csv`, plus descriptive `summary.jsonl` and `summary.csv`.
+
+```bash
+PYTHONPATH="$PWD/src" python -m roco_ebbo tsp-dry-run \
+  --config configs/experiments/tsp_mock_dry_run.yaml \
+  --output-dir /tmp/roco-tsp-dry-run
+```
+
+White-box and black-box are prompt-information visibility conditions, not expensive-oracle settings. The
+first Mock run records both but intentionally makes no quality comparison. Each method receives identical
+explicit hard ceilings; actual calls, tokens, candidates, valid evaluations, cost, and wall time remain
+separately visible. The default inventory, seeds, timeout, bounds, and Mock measurements are engineering
+protocol values, not paper data or performance reproduction. See
+`docs/paper_spec/tsp_experiment_protocol.md`, ADR-0006, and G-034--G-036 before any real experiment.
 
 ## Original repository purpose
 
