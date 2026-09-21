@@ -3,9 +3,9 @@
 Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic Heuristic Design**, followed by a migration toward multi-agent expensive black-box optimization (EBBO).
 
 This repository contains deterministic Stage 2/3 baselines, the published Stage 4 V1 opt-in offline
-memory path, and a Stage 5 OpenAI-compatible adapter verified only through an injected fake
-transport. It does **not** claim to be the authors' official implementation or a completed paper
-reproduction. No HTTP transport, real-provider interoperability run, or paper experiment has been
+memory path, a Stage 5 TSP-only Mock dry-run, and a P7a multi-COP/statistics design. It does **not**
+claim to be the authors' official implementation or a completed paper reproduction. No HTTP transport,
+real-provider interoperability run, external COP data acquisition, or paper experiment has been
 authorized or performed.
 
 ## Recommended local setup
@@ -43,6 +43,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `docs/adrs/0004-stage4-reflection-memory-design.md` | Stage 4 memory, retrieval, truncation, commit, and recovery decisions |
 | `docs/adrs/0005-offline-openai-compatible-adapter.md` | Stage 5 transport injection, strict response, retry, budget, and security decisions |
 | `docs/adrs/0006-stage5-tsp-protocol-dry-run.md` | TSP-50/100/200 inventory, result schema, fair ceilings, and offline dry-run boundary |
+| `docs/adrs/0007-stage5-multicop-statistics-evidence.md` | Candidate-COP evidence levels, statistics plan, and P7b implementation gates |
 | `docs/RoCo_reproduction_and_EBBO_roadmap.md` | Six-stage reproduction and migration plan |
 | `docs/paper/` | Source-grounded reading notes and paper-gap analysis |
 | `configs/paper_defaults.yaml` | Paper-aligned settings, annotated with non-disclosed items |
@@ -50,6 +51,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `configs/smoke/tsp_roco_mock.yaml` | Deterministic Stage 3 four-role collaboration configuration |
 | `configs/smoke/tsp_memory_mock.yaml` | Opt-in two-generation Stage 4 offline memory configuration |
 | `configs/experiments/tsp_mock_dry_run.yaml` | Fixed three-seed TSP protocol dry-run; Mock only, not a paper experiment |
+| `docs/paper_spec/multicop_experiment_protocol.md` | P7a candidate-COP registry, run-record contract, comparability, and preregistered analysis plan |
 | `configs/providers/openai_compatible_fake.example.yaml` | Documentation-only, no-key fake-transport adapter example |
 | `src/roco_ebbo/llm/openai_compatible.py` | Transport-neutral EoH/RoCo adapter and audit contracts; no HTTP implementation |
 | `src/roco_ebbo/` | RoCo / EBBO implementation package |
@@ -175,6 +177,21 @@ explicit hard ceilings; actual calls, tokens, candidates, valid evaluations, cos
 separately visible. The default inventory, seeds, timeout, bounds, and Mock measurements are engineering
 protocol values, not paper data or performance reproduction. See
 `docs/paper_spec/tsp_experiment_protocol.md`, ADR-0006, and G-034--G-036 before any real experiment.
+
+## Stage 5 P7a multi-COP/statistics design
+
+P7a is designed in the working tree and intentionally uncommitted. It registers TSP, MKP, OP, BPP,
+CVRP, and an unresolved `GLS` label as candidate COPs; only TSP has an existing offline protocol, and
+its P6 inventory remains synthetic. None of the other candidates is supported, downloaded, adapted, or
+reproduced. ADR-0007 defines E0--E4 evidence levels, while
+`docs/paper_spec/multicop_experiment_protocol.md` freezes the cross-COP run record, fair-budget/split/
+visibility/provider rules, and future statistical plan.
+
+The P6 commits `a94ce0c` and `7302ddd` are local-only: this branch has no upstream in the P7a-start
+Git check. Treat that observation as a handoff note and query live Git for current HEAD, upstream, and
+publication state. P7b is the next task: only after explicit data-source and license authorization may
+it implement one registered COP's offline data adapter and Mock/fake dry-run. It does not authorize a
+download, network/provider use, credentials, paid requests, performance claims, or statistical results.
 
 ## Original repository purpose
 

@@ -31,7 +31,7 @@ The paper's body says 400 LLM calls per generation, while its appendix says a ma
 
 ## Current checkpoint and next task
 
-The active Stage 5 P6 worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol` on
+The active Stage 5 P7a worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol` on
 `stage/05-tsp-protocol`, based exactly on local P5 status commit `7969b0d`.
 Use `git rev-parse HEAD` and live status commands for the current implementation state instead of
 copying a self-referential Stage 5 HEAD into documentation.
@@ -59,8 +59,19 @@ evaluations, USD 1, and 120 seconds); actual default use is EoH 8 calls/8 valid 
 calls/13 valid evaluations. White-box and black-box denote prompt visibility, not an expensive oracle.
 P6 passed 133 tests, Ruff, mypy, doctor, all three existing offline smokes, and `git diff --check`. It
 uses synthetic deterministic data—not the paper's raw data or a numerical reproduction—and leaves
-G-012, G-016, G-021, and G-034 through G-036 unresolved. Stage 5 is not complete; the next task is P7a
-multi-COP/statistical-protocol and evidence design. Use live Git queries for HEAD, upstream, and publication.
+G-012, G-016, G-021, and G-034 through G-036 unresolved. Stage 5 is not complete; P7a
+multi-COP/statistical-protocol and evidence design is complete. Use live Git queries for its commit,
+HEAD, upstream, and publication state.
+
+P7a is designed. ADR-0007 and
+`paper_spec/multicop_experiment_protocol.md` register TSP, MKP, OP, BPP, CVRP, and unresolved `GLS` as
+candidate COPs; only the synthetic P6 TSP protocol exists. They freeze E0--E4 evidence levels, the
+cross-COP run record, equal hard-budget/split/visibility/seed/provider-version rules, and a future
+pre-registered descriptive/bootstrap/failure plan. They do not implement, download, support, or run
+another COP. The P6 commits `a94ce0c` and `7302ddd` were local-only with no upstream in the P7a-start
+Git query; always re-query live Git before relying on publication status. P7b is next: after explicit
+source and license authorization, implement one registered COP's offline data adapter and Mock/fake
+dry-run only.
 
 ## Current Stage 3 executable scope
 
@@ -110,4 +121,4 @@ python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 and `paper_spec/tsp_experiment_protocol.md` define completed P6 offline TSP protocol/dry-run boundary. Neither authorizes real-provider interoperability, model experiments, paper-reproduction claims, or P7a implementation.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 defines P6 offline TSP protocol/dry-run; ADR-0007 and `paper_spec/multicop_experiment_protocol.md` define P7a's evidence/statistics boundary. Query live Git for P7a's commit and publication status. None authorizes real-provider interoperability, data downloads, model experiments, paper-reproduction claims, or P7b implementation before explicit data authorization.

@@ -43,9 +43,14 @@
 | G-031 | provider 响应与错误分类 | 必须自行设计 | 论文未给 wire schema 或失败 taxonomy | 单 choice、非流式严格 JSON；envelope/choice/message/usage/角色输出拒绝未知/缺失/重复/non-finite；分类 timeout、retryable transport、auth/permission、rate limit、malformed JSON、schema 和 provider error | 供应商扩展字段必须通过新 contract 版本显式决定，不能静默放宽 | ADR-0005；fake transport 已覆盖 |
 | G-032 | accepted attempt、usage 与价格结算 | 必须自行设计 | ADR-0001 把在途结算、真实价格留待 provider 阶段 | 发送前以 input + max output + 最大费用预检；accepted attempt 即计 call，合法 usage 按版本化 synthetic price table 结算；未知/非法 usage 不伪造 tokens/cost 并关闭 adapter 后续发送；接受后实际超支如实入账再停止 | synthetic 价格不是厂商价格；真实 model/币种/价格版本需另行核验 | ADR-0005；fake transport 已覆盖 |
 | G-033 | 离线 adapter 与真实实验边界 | 必须自行设计 | 工程验证与论文性能证据不是同一层级 | P5 仅证明 EoH/RoCo adapter 在 fake transport 下的请求、响应、重试、预算、上下文和脱敏契约；Stage 4 memory provider、真实 API 和实验均未接入 | 不得把“adapter 已离线验证”写成“真实 provider 已验证”或“论文复现完成” | ADR-0005；真实互操作/Stage 5 实验后续 |
-| G-034 | TSP-50/100/200 数据 inventory 与 train/test 划分 | 部分论文明确 + 必须自行设计 | `S009` 明确 TSP 实验并举例训练集为 5 个实例；表格出现 TSP-50/100/200；当前材料未唯一给出所有坐标分布、generator、seeds、test count 或逐实例清单 | ADR-0006 的 dry-run 使用版本化 unit-square 坐标规则、派生 seed、per-instance/manifest SHA-256 和 geometry checksum；默认每 split/size 一例明确为工程值 | 不得称为论文数据或用其数值作复现；真实实验前须获得/核验数据来源、test inventory 和 split policy | Stage 5 P6；真实 TSP 实验前关闭 |
-| G-035 | white-box/black-box prompt 内容与可见字段 | 论文语义明确，完整实现细节不足 | `S003` 说明两种设置；`S011` 指出 prompts 未完整可执行且 Critic 有歧义；本地材料不足以冻结逐字 prompt 和字段选择 | `roco-prompt-visibility-v1` 将其定义为信息可见性条件：black-box 不含坐标/矩阵/evaluator internals；Mock 只记录 metadata，不生成效果主张 | 真实 prompt 模板、上下文、模型和版本必须先审计；不能将提示词 black-box 混同昂贵 oracle black-box | ADR-0006；真实 provider 前关闭 |
-| G-036 | P6 dry-run 实例数、seed、运行长度与公平上限 | 必须自行设计 | 论文给出部分全局参数，但 G-011/G-012/G-021 仍使完整 run budget/multiplicity 不可由本地材料唯一确定 | 固定 3 seed、每 split/size 1 instance、`N=4`、一代、`T=2` 和六类相同 hard ceilings；所有值写入 config/result | 这些仅验证接口与账本；不得描述为论文的三/四次独立运行、400 budget 或方法公平结果 | ADR-0006；真实实验设计前重定 |
+| G-034 | TSP-50/100/200 数据 inventory 与 train/test 划分 | 部分论文明确 + 必须自行设计 | `S009` 明确 TSP 实验并举例训练集为 5 个实例；表格出现 TSP-50/100/200；当前材料未唯一给出所有坐标分布、generator、seeds、test count 或逐实例清单 | ADR-0006 的 dry-run 使用版本化 unit-square 坐标规则、派生 seed、per-instance/manifest SHA-256 和 geometry checksum；默认每 split/size 一例明确为工程值 | 关闭证据：获授权的来源/release 与许可证、逐实例 inventory/checksum、split policy 和论文对应记录；此前不得称论文数据或用其数值作复现 | Stage 5；真实 TSP 实验前关闭 |
+| G-035 | white-box/black-box prompt 内容与可见字段 | 论文语义明确，完整实现细节不足 | `S003` 说明两种设置；`S011` 指出 prompts 未完整可执行且 Critic 有歧义；本地材料不足以冻结逐字 prompt 和字段选择 | `roco-prompt-visibility-v1` 将其定义为信息可见性条件：black-box 不含坐标/矩阵/evaluator internals；Mock 只记录 metadata，不生成效果主张 | 关闭证据：版本化 prompt/allowed-fields contract、来源映射、模型/上下文和可见字段审计；不能将提示词 black-box 混同昂贵 oracle black-box | Stage 5；真实 provider 前关闭 |
+| G-036 | P6 dry-run 实例数、seed、运行长度与公平上限 | 必须自行设计 | 论文给出部分全局参数，但 G-011/G-012/G-021 仍使完整 run budget/multiplicity 不可由本地材料唯一确定 | 固定 3 seed、每 split/size 1 instance、`N=4`、一代、`T=2` 和六类相同 hard ceilings；所有值写入 config/result | 关闭证据：论文/授权实验的重复数、seed、multiplicity、timeout scope 与六维预算的预注册；这些工程值不得描述为论文预算或方法公平结果 | Stage 5；真实实验设计前重定 |
+| G-037 | 候选 COP 的来源与许可证 | 必须自行设计/证据不足 | 当前本地材料没有 MKP、OP、BPP、CVRP 或 GLS 的可获授权 source、release 或 license | P7a 仅登记候选；无来源/许可的 COP 一律 E0，未支持、未下载、未实现 | 关闭证据：用户明确授权的 source identifier、release/version、license text/适用范围与本地保存策略；每个 COP 独立登记 | P7b 前逐问题关闭 |
+| G-038 | 候选 COP 的实例 inventory、checksum 与 split | 必须自行设计 | 当前本地材料没有非 TSP COP 的实例清单、规模、seeds、train/validation/test 划分或 checksum | P7a 冻结 per-instance/manifest checksum、split policy 与语义等价泄漏检查的必填要求 | 关闭证据：版本化 inventory、逐实例/总 checksum、规模、source release、split policy 与无重叠验证；未经验证实例不得进入 run | P7b 前逐问题关闭 |
+| G-039 | 候选 COP 的目标、约束、evaluator 与指标 | 必须自行设计/证据不足 | 名称本身不足以唯一确定 MKP/OP/BPP/CVRP 变体；GLS 全称与语义也未确认 | P7a 只列暂定方向，要求 objective direction、candidate representation、constraints、feasibility、timeout scope、metric/reference 都版本化 | 关闭证据：来源支持的问题定义、evaluator contract、有限结果/失败规则、reference 的来源和版本；未闭合时不能计算 gap 或比较 score | P7b 前逐问题关闭 |
+| G-040 | 跨 COP 公平预算、随机性、provider 与 visibility | 必须自行设计 | G-009/G-012/G-018/G-021/G-035 不能唯一给出跨问题的 token、calls、multiplicity、seed 或 prompt 规则 | P7a 定义相同 benchmark cell 内的六维 hard-budget profile、匹配 seed、provider/version 与 visibility contract；P6 profile 仅限 P6 | 关闭证据：预注册 profile、seed derivation/seed set、prompt allowed-fields hash、provider/model/tokenizer/pricing versions 及完整 ledger；不得跨 COP 合并原始 score | P7b/真实实验前关闭 |
+| G-041 | 多 COP 统计、失败处理与结论边界 | 必须自行设计 | 当前没有任何非 TSP 真实实验；P6 只有 3-seed metadata-only Mock dry-run | P7a 规定每个可比较 cell 最少 10 个匹配 seed、描述统计、10,000 次 paired bootstrap 95% interval 和 fail-closed 失败报告 | 关闭证据：运行前固定的分析计划、全部 planned/completed/failed run 工件、匹配 seed 表、bootstrap 输入/脚本与偏离记录；不得由缺失/失败 run 推导优越性 | E4 真实实验前关闭 |
 
 ## 当前阻断项
 
@@ -64,4 +69,6 @@ P4 由 `c7a1ae4` 实现并包含在 Stage 4 发布基线 `59c3357` 中，已验�
 离线验证；仓库没有 HTTP transport，不读取真实凭据、不发起网络，Mock 仍为默认。这不包含
 真实 API、Stage 4 memory-provider 接线、真实模型互操作/实验或论文数值复现。当前 HEAD、
 upstream 与发布状态必须用实时 Git 查询。P6 的 TSP protocol/Mock dry-run 由 ADR-0006
-界定；它不关闭 G-012/G-016/G-021/G-034/G-035，也不授权任何真实副作用。
+界定；它不关闭 G-012/G-016/G-021/G-034/G-035/G-036，也不授权任何真实副作用。P7a 的
+ADR-0007 与多 COP 协议只冻结证据、记录和统计边界；G-037–G-041 要求每个候选 COP 在 P7b
+前分别提供来源/许可证、inventory/checksum/split、evaluator 与预注册关闭证据。

@@ -36,6 +36,28 @@
 | EoH E1/E2/M1/M2 每算子候选数 | 未披露到当前 source blocks | p.3 / `S005` | 否 | 待 Stage 2 配置化 | 必须纳入 candidate/call 数量推演 |
 | Top-N tie-break | 未披露 | p.3 / `S005` | 否 | 稳定排序 + 明示的候选 ID tie-break（待实现 ADR） | 不得依赖并行完成顺序 |
 
+## P7a 跨 COP 参数权威定义
+
+本节是 P7a 及未来 P7b 的跨 COP 参数**唯一权威定义**；
+`multicop_experiment_protocol.md` 定义这些字段如何进入 run record。它不改写 P6 的 TSP-only
+config：P6 的 3 seeds 与 `24/120000/24/24/1 USD/120 s` 仍只适用于 ADR-0006 dry-run，不能
+被读成下列真实/多 COP 实验的默认值或论文参数。
+
+| 参数名 | 论文给出的值 | P7a 预注册定义 | 适用与证据边界 |
+|---|---|---|---|
+| `experiment.benchmark_id` / `benchmark_version` | 非 TSP COP 未由本地材料确认 | 不可变问题标识和 evaluator-compatible version；每个 run 必填 | 候选 COP 在 E0–E2 只能登记，不能标为 supported；见 G-037/G-039 |
+| `dataset.source_id` / `release` / `license_id` | 未披露到可执行粒度 | 获授权来源、release/version 和许可证标识均必填 | 无三者不得下载、适配或运行；见 G-037 |
+| `dataset.inventory_checksum` / `instance_checksum` | 非 TSP 未披露 | canonical inventory 和每个 instance 的 SHA-256；两者均必填 | checksum mismatch fail closed；见 G-038 |
+| `dataset.split_policy_version` / `split` | 论文 split 细节不足 | 明示 train/validation/test 规则，semantic/geometry-equivalent instance 不得跨 split | 方法选择只可用 train/validation；test 在设计冻结后使用；见 G-034/G-038 |
+| `experiment.seed_set` / `derived_run_seed` | 未披露 | 运行前固定 root seed set；按 benchmark/version/instance checksum/split/condition/method 派生 | 同一比较 cell 的方法必须匹配 seeds；P6 `[101,202,303]` 仍是 P6-only；见 G-018/G-036/G-040 |
+| `budget.profile_id` / `budget.hard_limits` | G-012 仍冲突 | 同时声明 calls、input/output tokens、generated candidates、valid evaluations、cost、wall time 六维 hard ceilings 和作用域 | 同 cell 所有方法使用相同 profile；实际消耗另报，P6 profile 不外推；见 G-012/G-021/G-040 |
+| `prompt_visibility.contract_version` / `condition` / `allowed_fields_hash` | 两个 setting 存在，完整 prompt 未披露 | visibility 是版本化信息集；记录 condition、允许字段 hash、prompt version/hash 与禁止字段 | 不是昂贵 oracle；比较单元不得混用 condition；见 G-035/G-040 |
+| `provider.name` / `network_state` / `model` / `adapter_contract` | 仅部分模型名披露 | 记录 provider、network、model snapshot、adapter、tokenizer counter、pricing、temperature/concurrency 版本 | Mock 可重放非时间状态；真实 provider 另需授权，不能伪称确定性；见 G-009/G-030–G-033/G-040 |
+| `evaluation.objective_direction` / `evaluator_contract` / `timeout_scope` / `metric_name` / `reference_version` | 非 TSP COP 未披露 | 在 run 前冻结 minimize/maximize、constraints、feasibility、timeout scope、primary metric 和可选 reference | 不同 evaluator/reference 的 raw score/gap 不可直接比较；见 G-016/G-039 |
+| `statistics.planned_repetitions` / `seed_set_id` | 未披露 | 每个可比较 cell 最低 10 个匹配独立 seeds；完整 seed set 运行前固定 | 少于 10（包括 P6 3-seed Mock）只能作描述性接口审计；见 G-041 |
+| `statistics.bootstrap` | 未披露 | 10,000 次 paired bootstrap、95% percentile interval，只用于同 cell 匹配完成 pairs | 不是 p-value；不使用显著性措辞，不跨 COP 聚合；见 G-041 |
+| `statistics.failure_policy` | 未披露 | planned/completed/failed 全记录；失败不删除、不重抽 seed、不插补 score；completed-only 必须标条件性 | 失败率/原因与 objective 同报；见 G-041 |
+
 ## 400 calls 与 400 evaluations 的处理
 
 两句话不能互相替代：一次调用可能不产生候选、产生无效代码或产生一个待评估候选；一次候选评估也可能因修复、缓存、重复或超时而与调用数不一一对应。第一版因此分别记录 `llm_calls`、`tokens`、`generated_candidates`、`valid_evals`、`cost`、`wall_time`，每个实验显式指定至少一个硬停止预算。复现实验报告必须同时展示各账本值，不能把“达到 400 calls”写成“达到 400 evaluations”。
