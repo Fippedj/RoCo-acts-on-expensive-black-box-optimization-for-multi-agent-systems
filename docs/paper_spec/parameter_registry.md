@@ -63,6 +63,32 @@ config：P6 的 3 seeds 与 `24/120000/24/24/1 USD/120 s` 仍只适用于 ADR-00
 | `statistics.bootstrap` | 未披露 | 10,000 次 paired bootstrap、95% percentile interval，只用于同 cell 匹配完成 pairs | 不是 p-value；不使用显著性措辞，不跨 COP 聚合；见 G-041 |
 | `statistics.failure_policy` | 未披露 | planned/completed/failed 全记录；失败不删除、不重抽 seed、不插补 score；completed-only 必须标条件性 | 失败率/原因与 objective 同报；见 G-041 |
 
+## Stage 6 EBBO 设计参数
+
+本节登记 ADR-0008 与 `ebbo_design.md` 的设计参数。它们不是 RoCo 论文披露值，也不表示运行时代码
+已经实现。`unset` 表示必须在对应 P9 子任务开始前以 gap 关闭证据和版本化配置决定，调用方不得自行
+选择一个库默认值。
+
+| 参数名 | Stage 6 冻结值/候选 | 当前状态 | 适用与证据边界 |
+|---|---|---|---|
+| `ebbo.problem.objective_direction` | `minimize`，单一 primary objective | 设计冻结 | maximize/多目标需新 contract；约束统一为 `g_i(x) <= 0` |
+| `ebbo.oracle.request_schema` / `result_schema` | `ebbo-oracle-request-v1` / `ebbo-oracle-result-v1` | 概念契约冻结；未实现 | 真实 endpoint、credential、网络和付费 oracle 不在 schema 或当前授权中 |
+| `ebbo.observation.schema` / `status_contract` | `ebbo-observation-v1` / ADR-0008 状态转换 | 概念契约冻结；未实现 | 失败 Observation 不含惩罚 objective；late result 不覆盖终态 |
+| `ebbo.budget.ledger_schema` | `ebbo-ledger-v1`；oracle calls、成功/失败 evaluations、candidate proposals、LLM calls/tokens、source+unit cost、wall-clock 分账 | 概念契约冻结；未实现 | 不修改现有 `BudgetLedger`；代码边界/迁移见 G-042 |
+| `ebbo.budget.acceptance_rule` | oracle 接受的每个 attempt 永久计 `oracle_calls` 与可确认实际成本 | 设计冻结 | timeout、失败、接受后取消和实际重复接受均不退款 |
+| `ebbo.run.root_seed` / `seed_derivation_version` | `unset` / `unset` | P9a 前决定 | Mock oracle、surrogate、pool、acquisition、角色、scheduler 必须用分离 label；见 G-042 |
+| `ebbo.oracle.mock_contract` | deterministic、`noise.kind=none`、`max_concurrency=1` | P9a 范围冻结；函数/benchmark 未选择 | 只证明控制流、审计和 replay，不是昂贵真实实验；见 G-045/G-046 |
+| `ebbo.surrogate.family` / `fit_contract` | `unset` | 开放 | 不假定 GP、神经 surrogate 或第三方 BO 库；见 G-043 |
+| `ebbo.acquisition.id` | EI、UCB、Thompson sampling 是未来候选 | 开放 | P9a 必须预选一种作为单 agent baseline；多种 acquisition 分别成实验 cell；见 G-044 |
+| `ebbo.candidate_pool.size` / `optimizer` / `tie_break` | `unset` | 开放 | pool 必须有限、版本化、可审计；角色不得选择池外候选；见 G-044 |
+| `ebbo.noise.model` / `replication_policy` | P9a Mock 为 none/默认不 replicate；真实设置 `unset` | 部分冻结 | 噪声聚合、重复评估和 latent/observed regret 见 G-046 |
+| `ebbo.constraints.contract` / `failure_model` | optional `g_i(x) <= 0`；具体约束和模型 `unset` | 开放 | 失败不得变成惩罚 objective；约束 BO/失败建模见 G-047 |
+| `ebbo.cost.model` / `cost_aware_acquisition` | unit-aware；具体模型 `unset` | 开放 | 不同单位/币种禁止隐式相加；预计与实际成本并存；见 G-049 |
+| `ebbo.scheduler.max_concurrency` | P9a/P9b 为 `1`；P9c `unset` | 串行范围冻结，异步开放 | reservation/pending/取消/recovery/late result 见 G-048 |
+| `ebbo.roles` | global explorer、local exploiter、model critic、resource integrator | 设计冻结；P9b 未实现 | Integrator 只引用有限 pool entry，scheduler 唯一 dispatch；见 G-051 |
+| `ebbo.evaluation.primary_metric` | simple regret（仅有可靠 reference 时） | 原则冻结，reference 未定 | cumulative regret、cost-to-target、failure/time 指标需预注册；见 G-050 |
+| `ebbo.statistics.seed_set` / `repetitions` / `target` | `unset` | P10 前决定 | 没有 E4 工件不得作性能、显著性、泛化或优越性结论；见 G-050 |
+
 ## 400 calls 与 400 evaluations 的处理
 
 两句话不能互相替代：一次调用可能不产生候选、产生无效代码或产生一个待评估候选；一次候选评估也可能因修复、缓存、重复或超时而与调用数不一一对应。第一版因此分别记录 `llm_calls`、`tokens`、`generated_candidates`、`valid_evals`、`cost`、`wall_time`，每个实验显式指定至少一个硬停止预算。复现实验报告必须同时展示各账本值，不能把“达到 400 calls”写成“达到 400 evaluations”。

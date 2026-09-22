@@ -3,8 +3,9 @@
 Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic Heuristic Design**, followed by a migration toward multi-agent expensive black-box optimization (EBBO).
 
 This repository contains deterministic Stage 2/3 baselines, the published Stage 4 V1 opt-in offline
-memory path, a Stage 5 TSP-only Mock dry-run, a P7a multi-COP/statistics design, and one P7b FSU MKP
-offline integration protocol. It does **not**
+memory path, a Stage 5 TSP-only Mock dry-run, a P7a multi-COP/statistics design, one P7b FSU MKP
+offline integration protocol, and the completed Stage 6 EBBO design specification. Stage 6 runtime
+implementation has **not** started. The repository does **not**
 claim to be the authors' official implementation or a completed paper reproduction. No HTTP transport,
 real-provider interoperability run, statistical experiment, or paper experiment has been performed.
 The only external COP snapshot is the narrowly authorized, Git-ignored FSU P01--P06 MKP data used by
@@ -46,6 +47,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `docs/adrs/0005-offline-openai-compatible-adapter.md` | Stage 5 transport injection, strict response, retry, budget, and security decisions |
 | `docs/adrs/0006-stage5-tsp-protocol-dry-run.md` | TSP-50/100/200 inventory, result schema, fair ceilings, and offline dry-run boundary |
 | `docs/adrs/0007-stage5-multicop-statistics-evidence.md` | Candidate-COP evidence levels, statistics plan, and P7b implementation gates |
+| `docs/adrs/0008-stage6-ebbo-design.md` | Stage 6 oracle, ledger, module, role-permission, scheduling, and implementation-boundary decisions |
 | `docs/RoCo_reproduction_and_EBBO_roadmap.md` | Six-stage reproduction and migration plan |
 | `docs/paper/` | Source-grounded reading notes and paper-gap analysis |
 | `configs/paper_defaults.yaml` | Paper-aligned settings, annotated with non-disclosed items |
@@ -56,6 +58,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `configs/experiments/mkp_fsu_mock_dry_run.yaml` | P01--P06 protocol-only MKP engineering dry-run; Mock/network-unused only |
 | `docs/data_provenance/mkp_fsu_knapsack_multiple_v1.md` | Authorized FSU source/license, raw checksums, parser/evaluator/split and E3 boundary |
 | `docs/paper_spec/multicop_experiment_protocol.md` | P7a candidate-COP registry, run-record contract, comparability, and preregistered analysis plan |
+| `docs/paper_spec/ebbo_design.md` | JSON-safe EBBO contracts, data flow, pending semantics, evaluation plan, and P9 task split |
 | `configs/providers/openai_compatible_fake.example.yaml` | Documentation-only, no-key fake-transport adapter example |
 | `src/roco_ebbo/llm/openai_compatible.py` | Transport-neutral EoH/RoCo adapter and audit contracts; no HTTP implementation |
 | `src/roco_ebbo/` | RoCo / EBBO implementation package |
@@ -73,6 +76,10 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 - A real-model run must additionally record the adapter, prompt, tokenizer/token-counter, model, and
   pricing-table versions. Provider-reported usage is mandatory; local token counts cannot be used to
   invent billing usage.
+- An EBBO oracle attempt counts as an `oracle_call` as soon as the oracle accepts it, even if it later
+  fails, times out, is cancelled, or duplicates earlier work. EBBO oracle/evaluation/candidate/LLM/token/
+  cost/wall-clock ledgers remain separate from the existing Stage 2--5 `BudgetLedger` until P9 defines
+  and tests an explicit compatibility boundary.
 
 ## Paper facts versus engineering decisions
 
@@ -224,6 +231,39 @@ This exact offline Mock contract is E3 evidence only. It does not authorize anot
 reference optimality, G-041 statistical execution, a real provider, paper reproduction, or performance
 and superiority conclusions. P7b implementation, commit, and publication status must be checked with
 live Git rather than inferred from this historical working-tree note.
+
+## Stage 6 EBBO design
+
+ADR-0008 and `docs/paper_spec/ebbo_design.md` complete the **design-only** P8 checkpoint. EBBO means
+that objective and optional constraint feedback are available only through an expensive oracle; it is
+not the paper's black-box prompt-visibility setting. The design freezes JSON-safe `OracleRequest`,
+`OracleResult`, `Observation`, and `EvaluationStatus` concepts, acceptance-based oracle accounting,
+stable IDs/seeds, replay boundaries, and modules for the oracle adapter, observation store, surrogate,
+acquisition, finite candidate pool, scheduler, role controller, and artifacts.
+
+The Stage 6 roles are global explorer, local exploiter, model critic, and resource integrator. They may
+interpret observations, express region/strategy preferences, review uncertainty, and allocate budget.
+They cannot call the oracle. In particular, the integrator can only select entries already produced by
+the surrogate/acquisition candidate pool; the scheduler alone may dispatch after budget, constraint,
+pending, and duplicate checks.
+
+No GP, neural surrogate, acquisition implementation, BO library, oracle worker, async scheduler,
+benchmark, real provider, network call, or experiment was added. EI, UCB, and Thompson sampling are
+future baseline candidates, not supported features. G-042--G-051 keep the ledger implementation,
+surrogate, acquisition, benchmark, noise, constraints, cost, concurrency, roles/memory, and statistics
+choices explicit.
+
+The required implementation order is:
+
+1. P9a: deterministic Mock expensive-oracle, Observation/ledger/store, and a serial minimal single-agent
+   BO baseline.
+2. P9b: restricted four-role control and candidate-pool-only scheduling.
+3. P9c: asynchronous pending/failure-aware/cost-aware scheduling and recovery.
+4. P10: only after explicit authorization of benchmark, source, license, real provider/oracle, and hard
+   budgets, preregister and run real experiments.
+
+Until P10 has E4 artifacts, the project makes no EBBO performance, significance, generalization, or
+superiority claim and never aggregates raw scores across benchmarks.
 
 ## Original repository purpose
 

@@ -31,8 +31,22 @@ The paper's body says 400 LLM calls per generation, while its appendix says a ma
 
 ## Current checkpoint and next task
 
-The active Stage 5 P7b worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol` on
-`stage/05-tsp-protocol`, based exactly on local P5 status commit `7969b0d`.
+The active Stage 6 design worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage6` on
+`stage/06-ebbo-design`, based exactly on released commit
+`08712c5a065818889b1b11b315dadafee9437d06`. This worktree has no configured upstream at the P8
+checkpoint; always use live Git commands for HEAD, status and publication state. ADR-0008 and
+`paper_spec/ebbo_design.md` complete the Stage 6 **design** boundary. No Stage 6 source, dependency,
+configuration, test, oracle, surrogate, acquisition, scheduler or experiment has been implemented.
+
+The next implementation task is P9a only: a deterministic Mock expensive-oracle, the new JSON-safe
+request/result/observation/status contracts, an independent EBBO ledger/store, and a serial minimal BO
+baseline. P9b adds restricted role control, P9c adds async/pending/failure-aware scheduling and recovery,
+and P10 requires separate explicit authorization for benchmark/source/license, real provider/oracle and
+hard budgets. Do not collapse these gates.
+
+The historical Stage 5 P7b worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol` on
+`stage/05-tsp-protocol`; that line of work originally used local P5 status commit `7969b0d` as its P6
+baseline and later advanced through P7b.
 Use `git rev-parse HEAD` and live status commands for the current implementation state instead of
 copying a self-referential Stage 5 HEAD into documentation.
 
@@ -105,6 +119,10 @@ The RoCo path writes `collaboration_trace.jsonl` in the run directory, one seria
 
 This trace is short-lived run evidence. Stage 3 itself does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; Stage 4 V1 supplies those capabilities through a separate opt-in runtime. Their design is frozen in `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`. A transport-neutral adapter now exists, but real provider transport/interoperability, expensive black-box optimization, and other benchmarks remain out of scope.
 
+For Stage 6, “out of scope” in the preceding historical Stage 3 description means runtime implementation,
+not design: ADR-0008 and `paper_spec/ebbo_design.md` now define the future EBBO boundary, while P9 has
+not begun.
+
 P3b adds `configs/smoke/tsp_memory_mock.yaml` as a separate, explicit opt-in.
 With two generations, `T=2`, and one memory elite, its no-failure accounting is 44 Mock LLM calls
 and 28 valid evaluations. It writes P3a generation segments/summaries/checkpoints/commit markers plus
@@ -138,4 +156,4 @@ python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 defines P6 offline TSP protocol/dry-run; ADR-0007 and `paper_spec/multicop_experiment_protocol.md` define P7a's evidence/statistics boundary. The P7b-0 provenance freezes only the specifically authorized FSU MKP source and checksums. Query live Git for commit and publication status. None authorizes real-provider interoperability, another data source, model experiments, paper-reproduction claims, or P7b parser/evaluator/dry-run implementation without a separate task.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 defines P6 offline TSP protocol/dry-run; ADR-0007 and `paper_spec/multicop_experiment_protocol.md` define P7a's evidence/statistics boundary. The P7b-0 provenance freezes only the specifically authorized FSU MKP source and checksums. ADR-0008 and `paper_spec/ebbo_design.md` freeze Stage 6 design without adding runtime capability. Query live Git for commit and publication status. None authorizes real-provider interoperability, another data source, model experiments, paper-reproduction claims, a real expensive oracle, or paid EBBO experiments without a separate task.

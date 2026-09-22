@@ -2,7 +2,7 @@
 
 > 用途：把本文件单独交给一个新的 AI 会话，使它能理解仓库现状、区分已提交与未提交工作，并帮助用户设计后续实现任务的提示词。
 >
-> 快照日期：2026-09-21（Asia/Shanghai）。本文件是状态快照，不是 Git 或测试结果的替代品；新会话必须先用只读命令复核。
+> 快照日期：2026-09-22（Asia/Shanghai）。本文件是状态快照，不是 Git 或测试结果的替代品；新会话必须先用只读命令复核。
 
 ## 0. 给新 AI 会话的工作规则
 
@@ -31,15 +31,15 @@ git diff --check
 
 ```yaml
 snapshot:
-  date: 2026-09-21
-  repository: /home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol
+  date: 2026-09-22
+  repository: /home/fj/RoCo-BO/RoCo-ebbo-stage6
   origin: https://github.com/Fippedj/RoCo-acts-on-expensive-black-box-optimization-for-multi-agent-systems.git
-  branch: stage/05-tsp-protocol
+  branch: stage/06-ebbo-design
   stage4_parent: f6f3e1dd19427704971d443f28e894ce57af3676
   stage5_baseline: 59c335757b65935b29b7141ef6f0e6d338eb3603
   current_head: "run: git rev-parse HEAD"
   current_head_subject: "run: git log -1 --format=%s"
-  upstream: "run: git branch -vv; P7a-start query found no upstream"
+  upstream: "none at P8-start query; always re-run git branch -vv"
   upstream_distance: "run: git rev-list --left-right --count HEAD...@{upstream} only when an upstream exists"
   stage3_implementation_commit: 2ce66a4f66c0e446fa8b44a729783074cc13064a
   stage3_publication_commit: f6f3e1dd19427704971d443f28e894ce57af3676
@@ -66,6 +66,10 @@ snapshot:
   stage5_p7a_design_commit: 1953fc7
   stage5_p7a_status: "committed locally at P7b-0 start with no upstream; query publication status with live Git; documentation only"
   stage5_complete: false
+  stage6_baseline: 08712c5a065818889b1b11b315dadafee9437d06
+  stage6_p8_design: "ADR-0008 and paper_spec/ebbo_design.md; design complete in working tree; implementation not started"
+  stage6_runtime_implemented: false
+  stage6_real_oracle_authorized: false
   agents_md_present: false
   codegraph_present: false
   network_required: false
@@ -227,11 +231,21 @@ Stage 4 worktree：
 /home/fj/RoCo-BO/RoCo-ebbo-stage4
 ```
 
-P6 所在的当前 Stage 5 worktree：
+P6/P7 所在的历史 Stage 5 worktree：
 
 ```text
 /home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol
 ```
+
+P8 所在的当前 Stage 6 design worktree：
+
+```text
+/home/fj/RoCo-BO/RoCo-ebbo-stage6
+```
+
+该 worktree 的分支是 `stage/06-ebbo-design`，P8 基线是已发布的
+`08712c5a065818889b1b11b315dadafee9437d06`；P8 开始时没有 upstream。设计文件处于工作树时，
+不得把它描述成已提交或已发布。
 
 `stage/04-reflection-memory` 已通过 `59c3357` 发布完整 Stage 4 V1。P6 本地基线为 P5
 状态提交 `7969b0d`，实现/状态提交为 `a94ce0c`/`7302ddd`；P7a 是已设计的文档子任务，
@@ -311,17 +325,17 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 | Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
 | Stage 4：反思与跨代记忆 | 已由 `59c3357` 发布 | ADR-0004、事实/恢复底座、opt-in 摘要/检索/截断/mutation、显式 resume 与离线消融 | 冻结 V1 离线 Mock 实现 100% |
 | Stage 5：论文实验对齐 | P5/P6/P7a 有本地提交；P7b-0/P7b 与 upstream 状态须实时查询 | P6 合成 TSP Mock dry-run；P7a 证据协议；P7b 为 FSU MKP 提供 `protocol-only` E3 离线 Mock 协议 | P5/P6/P7a 和该 MKP E3 子范围完成；真实实验/论文对齐仍未完成 |
-| Stage 6：多智能体 EBBO | 未实现 | 只有研究分析和路线图 | 0% |
+| Stage 6：多智能体 EBBO | P8 设计工作树完成；提交/发布状态须实时查询 | ADR-0008、JSON-safe 契约、独立账本、模块/角色边界、评测与 P9/P10 闸门；无运行时代码 | 设计 100%；实现 0% |
 
 以“六阶段是否具有可运行实现”粗略计数，仍只完成前四阶段的既定 V1 范围，约为 4/6。
 P5 完成 provider 协议与离线安全底座，P6 完成 TSP-only 合成协议和 Mock/fake dry-run，P7a
 完成多 COP/统计证据设计，P7b-0/P7b 将获授权的 FSU MKP snapshot 从 E2 冻结推进到窄范围 E3
-parser/evaluator/Mock dry-run。它们都不是论文数值复现、真实模型实验或统计结果；Stage 5–6 的
-真实实验与方法研究仍明显更重。
+parser/evaluator/Mock dry-run。它们都不是论文数值复现、真实模型实验或统计结果；Stage 6 的 P8
+设计已经完成，但不增加“具有可运行实现”的阶段数，Stage 5–6 的真实实验与方法研究仍明显更重。
 
 另一个必须说明的口径：相对于早期 roadmap 中更宽的 Stage 3 清单，当前约完成 70%–80%。roadmap 还提到 prompt 外置为 Jinja/YAML、上下文截断、修复重试、`no-critic`/`no-integrator` 消融和真实小预算运行；这些不在最近一次明确 Stage 3 任务范围内，且真实 API 被明确禁止，因此不是当前验收失败，而是后续候选任务。
 
-## 6. 已实现架构
+## 6. 已实现架构与已冻结设计
 
 ### 6.1 Stage 1：规格和决策
 
@@ -499,6 +513,26 @@ status / error_type / error_message
 - 这只关闭 FSU MKP 的 G-038/G-039/G-040 E3 子项。G-041、E4/真实 provider、reference 最优性、
   其他 COP 与论文数值复现仍开放；实现和发布状态一律实时 Git 查询。
 
+### 6.11 Stage 6 P8：EBBO 可执行设计（设计完成；实现未开始）
+
+- ADR-0008 区分昂贵 oracle black-box 与论文 prompt visibility，并冻结单目标 minimize、可选
+  `g_i(x)<=0` 约束、失败/超时/噪声/成本和预算边界。
+- `paper_spec/ebbo_design.md` 定义 JSON-safe `OracleRequest`、`OracleResult`、`Observation`、
+  `EvaluationStatus`，以及 accepted attempt 必计 `oracle_calls` 的审计状态机。
+- EBBO ledger 将 oracle calls、成功/失败 evaluations、candidate proposals、LLM calls/tokens、按
+  source+unit 的 cost 和 wall-clock 分账；它是新概念契约，不修改 Stage 2--5 `BudgetLedger`。
+- 模块边界为 oracle adapter、observation store、surrogate、acquisition、finite candidate pool、
+  scheduler、role controller 和 artifact/reporting；P9a 首先只做串行 deterministic Mock。
+- 角色重定义为 global explorer、local exploiter、model critic、resource integrator。Integrator 只能
+  从统计 candidate pool 选择，scheduler 是唯一 oracle dispatch capability。
+- 评测设计冻结同 surrogate/同 oracle budget 的单 agent acquisition baseline、多 agent 对照、simple
+  regret/cost/failure/time 指标和消融矩阵，但 EI/UCB/TS、surrogate、benchmark 和统计值都仍未选择。
+- G-042--G-051 保存 ledger/ID、surrogate、acquisition、benchmark、噪声、约束/失败、异步、成本、
+  统计和角色/memory 的未决项。没有 E4 工件不得作 EBBO 性能或优越性结论。
+
+该节描述的是文档设计，不是已实现架构。仓库仍没有 GP/神经 surrogate、BO/acquisition、oracle、
+async worker、真实 EBBO benchmark、网络调用或付费实验。
+
 ## 7. 当前审计结论
 
 ### 7.1 在最近明确 Stage 3 范围内通过的项目
@@ -580,11 +614,15 @@ snapshot 的 G-037–G-040 子项；G-041 和任何 E4/正式实验仍未关闭�
 
 ### Stage 6
 
-- 昂贵 oracle 抽象；
-- surrogate、acquisition、posterior 和不确定性校准；
-- 多 agent 区域划分和共享 posterior；
-- 异步 worker、pending evaluation、成本/失败感知调度；
-- EBBO benchmark 和 regret 指标。
+P8 已完成昂贵 oracle、Observation/ledger、surrogate/acquisition/candidate-pool、受限角色、
+pending/异步和后续评测的文档设计。以下运行时能力仍全部未实现：
+
+- deterministic Mock expensive-oracle 和任何真实昂贵 oracle adapter；
+- EBBO `OracleRequest`/`OracleResult`/`Observation`/ledger/store 代码；
+- surrogate、acquisition、posterior、有限 candidate pool 和不确定性校准；
+- global explorer、local exploiter、model critic、resource integrator 的 EBBO 控制层；
+- 异步 worker、pending evaluation、reservation、取消、成本/失败感知调度与恢复；
+- EBBO benchmark、baseline、regret/target/statistical experiment 和 E4 工件。
 
 ## 9. 推荐后续任务顺序
 
@@ -601,13 +639,17 @@ P0  Stage 3 最终审计/小范围加固（已完成）
   -> P7b-0 获授权 FSU MKP 来源/许可/inventory/checksum 冻结（E2；实现/发布状态实时查询）
   -> P7b FSU MKP parser/evaluator/protocol-only split 与 Mock/fake dry-run（E3 已验证；提交/发布状态实时查询）
   -> 后续 Stage 5 实施（须另行授权具体 COP/E4 数据、provider 与预算；G-041 仍开放）
-  -> P8  Stage 6 EBBO 设计规格
-  -> P9  EBBO 最小基线和角色控制层
+  -> P8  Stage 6 EBBO 设计规格（工作树已完成；实现未开始）
+  -> P9a deterministic Mock expensive-oracle + Observation/ledger + 串行最小 BO baseline
+  -> P9b 受限四角色控制层 + finite candidate-pool-only 调度
+  -> P9c async/pending/failure-aware/cost-aware 调度、取消与恢复
+  -> P10 仅在明确授权 benchmark/source/license、真实 provider/oracle 和硬预算后开展实验
 ```
 
 不要在后续返工中把 P3a、P3b、P5 和 P6 合成一次任务：事实/恢复底座、运行时记忆、
 provider 离线协议和论文实验协议应该分别审查。具体 HTTP transport、真实凭据、provider
-smoke 和付费实验也不由 P5 或 P6 自动授权，必须另行明确批准和设置硬预算。
+smoke 和付费实验也不由 P5 或 P6 自动授权，必须另行明确批准和设置硬预算。P9a、P9b、P9c 不得
+合并跳过：账本/oracle 底座、语言角色权限和异步恢复具有不同的失败与审计边界。
 
 ## 10. 通用任务提示词模板
 
@@ -759,14 +801,29 @@ generated candidates 或 valid evaluations。
 先用 Mock/fake provider 完成 dry-run；真实模型实验另行授权。不得把论文 black-box prompt 写成昂贵 oracle 黑盒，不实现 EBBO。保持 Stage 2/3/4 smoke 回归，不 commit/push。
 ```
 
-### 11.7 Prompt G：Stage 6 EBBO 设计（只设计）
+### 11.7 Prompt G：Stage 6 EBBO 设计（P8 已完成，保留作设计审计模板）
 
 ```text
 基于 `docs/AI_PROJECT_STATE_AND_PROMPT_GUIDE.md` 和现有 RoCo-AHD 结果，设计 Stage 6 的多智能体昂贵黑盒优化架构，但本任务不编码。
 
 明确问题定义、oracle budget、噪声/失败/约束、共享 posterior、异步 pending points 和 wall-clock/cost；将角色重新定义为 global explorer、local exploiter、model critic、resource integrator。Integrator 只能在 surrogate/acquisition 产生的统计候选池中选择或调度，不能让自然语言判断直接消耗昂贵 oracle。
 
-给出最小基线（单 agent GP + EI/UCB/TS）、多 agent 对照、固定 oracle 预算、公平指标、消融矩阵、模块接口、ADR 和分阶段实现提示词。不要声称 RoCo 论文已经证明 EBBO 有效，不实现真实实验或调用外部服务。
+给出最小基线（同一待选择 surrogate 下的 EI/UCB/TS 候选）、多 agent 对照、固定 oracle 预算、公平指标、消融矩阵、模块接口、ADR 和分阶段实现提示词。不要声称 RoCo 论文已经证明 EBBO 有效，不实现真实实验或调用外部服务。
+```
+
+### 11.8 Prompt H：P9a 串行 Mock EBBO 底座（下一实现任务）
+
+```text
+以 ADR-0008、paper_spec/ebbo_design.md、parameter_registry 和 G-042--G-050 为唯一 Stage 6
+设计基线。先关闭 P9a 所需的 ledger/canonical JSON/seed、最小 surrogate/acquisition、Mock function/
+search space 和串行失败语义子项，再实现 deterministic Mock expensive-oracle、OracleRequest/
+OracleResult/Observation/EvaluationStatus、独立 observation store/EBBO ledger、finite candidate pool 和
+max_concurrency=1 的单 agent BO baseline。
+
+不得修改现有 BudgetLedger 语义；旧 Stage 2--5 smoke 和工件必须回归不变。accepted oracle attempt
+即计 oracle_calls/cost；失败、timeout、取消、duplicate、非法结果和 cost overrun 都需结构化负路径。
+不接四角色控制、memory、异步 worker、真实 benchmark/provider/API/key/network 或付费实验，不声称
+性能。不得把 EI/UCB/TS、GP 或第三方库当作已决定项；先用 ADR/gap 关闭证据和依赖边界。
 ```
 
 ## 12. 为每个新任务设计提示词时的检查表
@@ -786,29 +843,18 @@ generated candidates 或 valid evaluations。
 
 ## 13. 当前最推荐的下一条提示词
 
-Stage 4 设计、P3a/P3b 与 P4 均已发布，发布基线为 `59c3357`。P4 实现提交
-`c7a1ae4` 已验证 engine 级提交后中断恢复、不中断/恢复端到端规范哈希等价和
-memory/no-memory 消融，并通过当时的 80 tests、Ruff、mypy、doctor、12/12、18/13 与
-44/28 三个 smoke。
+P8 已在发布基线 `08712c5a065818889b1b11b315dadafee9437d06` 上完成 Stage 6 文档设计：
+ADR-0008 和 `paper_spec/ebbo_design.md` 冻结 expensive-oracle 与 prompt black-box 的区别、JSON-safe
+request/result/observation/status、独立 EBBO ledger、accepted-attempt 结算、稳定 ID/seed、模块数据流、
+共享 posterior、有限 candidate pool、角色权限、pending/异步未来语义、评测/消融与 P9/P10 闸门。
+当前分支没有 upstream；HEAD、status、提交和发布状态必须实时查询。
 
-P5 OpenAI-compatible adapter 离线子任务已由
-`38428700d8f272f8107e8cd042f5fdec24d3e33d` 实现：
-Mock 仍为默认，EoH/RoCo adapter 只以 fake transport 验证，Stage 4 memory 仍为 Mock；
-仓库没有 HTTP transport，也没有真实 endpoint/key、provider smoke、真实模型或费用。
-这不代表整个 Stage 5 完成；当前 HEAD、upstream 与发布状态仍须用实时 Git 核验。
+当前最推荐的下一任务是 **P9a**，使用 11.8 Prompt H：先以 G-042--G-050 关闭最小实现所需选择，
+再实现 deterministic Mock expensive-oracle、Observation/ledger/store 和串行单 agent baseline。不得
+修改 Stage 2--5 `BudgetLedger` 或既有 smoke，不接角色、memory、异步、真实 benchmark/provider/
+network/key 或付费实验。P9b 仅在 P9a 通过后实现受限 candidate-pool 角色控制，P9c 再处理 pending/
+failure-aware 异步恢复；P10 必须重新取得用户对 benchmark、来源、许可证、真实 oracle/provider、
+硬预算和统计计划的明确授权。
 
-P6 已由本地提交 `a94ce0c`/`7302ddd` 记录：合成确定性 TSP-50/100/200 的 manifest/checksum、
-train/test 分离、72 条 Mock/fake dry-run、相同硬预算和 EoH/RoCo 结果 schema。P7a 设计提交为
-`1953fc7`：ADR-0007 与多 COP 协议只冻结候选、证据、run record 和统计计划；发布状态须实时 Git 查询。white-box/black-box
-仅为 prompt visibility 条件，非昂贵 oracle；P6/P7a 都不是论文原始数据、数值复现或真实模型实验。
-P6 通过 133 tests、Ruff、mypy、doctor 和原有三个离线 smoke。P7b-0 从用户授权的 FSU HTTPS 来源
-冻结 `mkp-fsu-knapsack-multiple-v1`：LGPL v3、P01–P06 的 18 个输入和 3 个可选 reference、逐文件
-checksum；原始文件在 Git 忽略目录。P7b 在此 E2 数据上实现并验证 `mkp-fsu-protocol-v1`：显式
-data root/checksum parser、全 `protocol-only` split、minimize `-raw_profit` evaluator、单一
-`full_instance`/Mock visibility，以及 12 条 EoH/RoCo run 的六类账本和 replay 工件。该范围只到 E3，
-不执行 optional reference、统计、真实 provider 或论文数值复现。
-
-P7b 的提交与发布状态必须通过实时 Git 查询（不得纳入用户的 `.vscode/settings.json` 或 Git 忽略
-原始数据）。任何后续 COP 数据、E4/真实 provider、G-041 统计或
-付费实验都必须由用户另行明确授权来源、许可证、版本、预算与结论边界。Stage 5 仍未完成；不得自动
-下载其他数据、调用真实 API、实现其他 COP/EBBO；HEAD、upstream 与发布状态仍用实时 Git 核验。
+Stage 6 目前的准确状态只能表述为“设计完成、实现未开始”。没有 E4 工件，不得作性能、显著性、
+泛化、优越性或论文复现结论。
