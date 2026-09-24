@@ -5,9 +5,9 @@ Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic
 This repository contains deterministic Stage 2/3 baselines, the published Stage 4 V1 opt-in offline
 memory path, a Stage 5 TSP-only Mock dry-run, a P7a multi-COP/statistics design, one P7b FSU MKP
 offline integration protocol, and the completed Stage 6 EBBO design specification. Stage 6 runtime
-now includes the published P9a deterministic offline engineering Mock foundation and a locally
-verified, uncommitted/unpublished P9b restricted role-control Mock. P9c and real experiments have
-**not** started. The repository does **not**
+now includes published P9a serial and locally committed P9b restricted-role engineering Mock paths,
+plus a worktree-only P9c deterministic fake-async Mock path. P9c is not yet committed or published;
+real experiments have **not** started. The repository does **not**
 claim to be the authors' official implementation or a completed paper reproduction. No HTTP transport,
 real-provider interoperability run, statistical experiment, or paper experiment has been performed.
 The only external COP snapshot is the narrowly authorized, Git-ignored FSU P01--P06 MKP data used by
@@ -32,6 +32,8 @@ python -m roco_ebbo ebbo-smoke --config configs/smoke/ebbo_mock.yaml \
   --output-dir /tmp/roco-ebbo-p9a-smoke
 python -m roco_ebbo ebbo-role-smoke --config configs/smoke/ebbo_role_mock.yaml \
   --output-dir /tmp/roco-ebbo-p9b-smoke
+python -m roco_ebbo ebbo-async-smoke --config configs/smoke/ebbo_async_mock.yaml \
+  --output-dir /tmp/roco-ebbo-p9c-smoke
 ```
 
 Open the folder from WSL with VS Code:
@@ -62,6 +64,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `configs/smoke/tsp_memory_mock.yaml` | Opt-in two-generation Stage 4 offline memory configuration |
 | `configs/smoke/ebbo_mock.yaml` | P9a serial deterministic Mock expensive-oracle smoke; no network or LLM |
 | `configs/smoke/ebbo_role_mock.yaml` | P9b full/no-role/no-critic/no-integrator offline role-control smoke |
+| `configs/smoke/ebbo_async_mock.yaml` | Opt-in P9c deterministic fake-async engineering smoke |
 | `configs/experiments/tsp_mock_dry_run.yaml` | Fixed three-seed TSP protocol dry-run; Mock only, not a paper experiment |
 | `configs/experiments/mkp_fsu_mock_dry_run.yaml` | P01--P06 protocol-only MKP engineering dry-run; Mock/network-unused only |
 | `docs/data_provenance/mkp_fsu_knapsack_multiple_v1.md` | Authorized FSU source/license, raw checksums, parser/evaluator/split and E3 boundary |
@@ -69,7 +72,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `docs/paper_spec/ebbo_design.md` | JSON-safe EBBO contracts, data flow, pending semantics, evaluation plan, and P9 task split |
 | `configs/providers/openai_compatible_fake.example.yaml` | Documentation-only, no-key fake-transport adapter example |
 | `src/roco_ebbo/llm/openai_compatible.py` | Transport-neutral EoH/RoCo adapter and audit contracts; no HTTP implementation |
-| `src/roco_ebbo/ebbo/` | Independent P9a foundation plus P9b restricted roles, scheduler gate, and four-path Mock runtime |
+| `src/roco_ebbo/ebbo/` | Independent P9a foundation, P9b roles, and opt-in P9c fake-async ledger/scheduler/recovery |
 | `src/roco_ebbo/` | RoCo / EBBO implementation package |
 | `tests/` | Unit, integration, and regression tests |
 | `scripts/` | WSL bootstrap and later experiment entry points |
@@ -241,7 +244,7 @@ reference optimality, G-041 statistical execution, a real provider, paper reprod
 and superiority conclusions. P7b implementation, commit, and publication status must be checked with
 live Git rather than inferred from this historical working-tree note.
 
-## Stage 6 EBBO: P8 design, P9a Mock, P9b restricted roles
+## Stage 6 EBBO: P8 design, P9a/P9b Mock, P9c fake-async Mock
 
 ADR-0008 and `docs/paper_spec/ebbo_design.md` complete the published P8 design checkpoint. EBBO means
 that objective and optional constraint feedback are available only through an expensive oracle; it is
@@ -290,14 +293,30 @@ search space, root seed, initial state, finite-pool rule, and 5-call ceiling. Ea
 oracle calls, 20 proposals, and 5 Mock cost units; role calls are 20/0/15/15 respectively, with
 financial cost 0 and `network=unused`. The no-role checksum remains the published P9a checksum
 `7d4b4da802d2cd4e29742b74fa9e3866b4ab319a27d207e1ce4c8e79fac5da01`. These are
-control-flow/replay facts, not performance evidence. P9b is locally verified but not committed or
-published.
+control-flow/replay facts, not performance evidence. P9b has local commit `fa3b464`; the local
+upstream-tracking ref matched at this worktree check, without a fresh network verification.
+
+P9c adds an opt-in, single-process deterministic fake-async scheduler (smoke concurrency 2),
+outstanding call/expected-cost reservations, completion-order audit, cancellation acknowledgement,
+and commit-last checkpoint/resume. Accepted Mock attempts are never refunded or dispatched twice;
+actual-cost overrun is recorded even if it exceeds the admission ceiling, then closes new admission.
+The smoke records 5 oracle calls, 3 successes, 2 failures (one timeout and one accepted cancellation),
+20 proposals, 5 `mock-evaluation-unit`, zero LLM calls/tokens and financial cost, `network=unused`.
+Its non-time replay checksum is `085fac4aa00ca567f055ab87b87084c896cfd463d5eb7a51741ccbae84e0e47f`;
+checkpoint-boundary interruption/resume reproduces the same state and audit. This is not a real async
+worker, probabilistic BO, cost-aware optimization, benchmark, or performance result.
+
+P9c's local offline acceptance passed: 221 pytest tests passed, 1 skipped; Ruff check and format check,
+mypy over 44 source files, doctor, the unchanged Stage 2/3/4 and P9a/P9b smoke contracts, the P9c
+CLI smoke, and `git diff --check`. This verifies the worktree Mock path only; it has not been staged,
+committed, or published.
 
 The required implementation order is:
 
 1. P9a: published by `4189f65970feab0a17299445641916c6245de4a8`.
-2. P9b: restricted four-role Mock control, locally verified; commit/publication pending.
-3. P9c: asynchronous pending/failure-aware/cost-aware scheduling and recovery; not implemented.
+2. P9b: restricted four-role Mock control, locally committed as `fa3b464`.
+3. P9c: opt-in fake-async pending/cancellation/recovery engineering Mock, verified in the worktree;
+   not committed/published. Real async reconciliation and cost-aware acquisition remain open.
 4. P10: only after explicit authorization of benchmark, source, license, real provider/oracle, and hard
    budgets, preregister and run real experiments.
 

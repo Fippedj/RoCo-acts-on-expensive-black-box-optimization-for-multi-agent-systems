@@ -530,6 +530,7 @@ class OracleResult:
             EvaluationStatus.SUCCEEDED,
             EvaluationStatus.FAILED,
             EvaluationStatus.TIMED_OUT,
+            EvaluationStatus.CANCELLED_AFTER_ACCEPT,
         }:
             raise ValueError("OracleResult must have a terminal oracle status")
         objective = _finite_number(raw["objective"], "OracleResult.objective", optional=True)
@@ -745,6 +746,7 @@ class Observation:
             EvaluationStatus.SUCCEEDED,
             EvaluationStatus.FAILED,
             EvaluationStatus.TIMED_OUT,
+            EvaluationStatus.CANCELLED_AFTER_ACCEPT,
         }:
             raise ValueError("Observation must have a terminal status")
         objective = _finite_number(raw["objective"], "Observation.objective", optional=True)

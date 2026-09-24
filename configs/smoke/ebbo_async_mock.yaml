@@ -1,0 +1,10 @@
+# P9c deterministic fake-async engineering smoke, never a benchmark.
+schema_version: ebbo-async-mock-smoke-config-v1
+baseline_config: ebbo_mock.yaml
+async:
+  max_concurrency: 2
+  completion_policy: reverse-ready-v1
+  cancel_after_accept_indices: [2]
+outcomes:
+  - {x: -5, kind: failed, actual_cost: 1.0}
+  - {x: 4, kind: timed_out, actual_cost: 1.0}

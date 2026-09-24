@@ -15,6 +15,7 @@ from typing import Any
 from roco_ebbo import __version__
 from roco_ebbo.core import RunManifest
 from roco_ebbo.ebbo import load_ebbo_smoke_settings, run_ebbo_smoke
+from roco_ebbo.ebbo.async_runtime import load_async_smoke_settings, run_async_smoke
 from roco_ebbo.ebbo.role_runtime import load_role_smoke_settings, run_role_smoke
 from roco_ebbo.experiments import (
     execute_mkp_experiment,
@@ -60,6 +61,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     role_smoke.add_argument("--config", required=True, type=Path)
     role_smoke.add_argument("--output-dir", required=True, type=Path)
+    async_smoke = subparsers.add_parser(
+        "ebbo-async-smoke", help="run or resume the offline P9c fake-async Mock"
+    )
+    async_smoke.add_argument("--config", required=True, type=Path)
+    async_smoke.add_argument("--output-dir", required=True, type=Path)
+    async_smoke.add_argument("--resume", action="store_true")
     experiment = subparsers.add_parser(
         "tsp-dry-run",
         help="run the offline TSP-50/100/200 protocol with the deterministic Mock provider",
@@ -104,10 +111,15 @@ def main() -> None:
         print(f"roco-ebbo={__version__}")
         print(f"python={sys.version.split()[0]}")
         print(f"platform={platform.platform()}")
-        print("status=stage6-p9b-ebbo-role-mock-offline; default_provider=mock; network=unused")
+        print(
+            "status=stage6-p9c-ebbo-fake-async-mock-offline; default_provider=mock; network=unused"
+        )
         return
     if args.command == "smoke":
         _run_smoke_command(args.config, args.runs_dir)
+        return
+    if args.command == "ebbo-async-smoke":
+        _run_ebbo_async_smoke_command(args.config, args.output_dir, args.resume)
         return
     if args.command == "ebbo-smoke":
         _run_ebbo_smoke_command(args.config, args.output_dir)
@@ -271,6 +283,28 @@ def _run_ebbo_role_smoke_command(config_path: Path, output_dir: Path) -> None:
             f"known_cost={ledger.known_cost:g} replay_checksum={result.replay_checksum}"
         )
     print("financial_cost=0 network=unused")
+    print(f"output_dir={output_dir}")
+
+
+def _run_ebbo_async_smoke_command(config_path: Path, output_dir: Path, resume: bool) -> None:
+    settings = load_async_smoke_settings(config_path)
+    run = run_async_smoke(settings, output_dir=output_dir, resume=resume)
+    summary = run.summary()
+    for key in (
+        "run_id",
+        "oracle_calls",
+        "evaluations_succeeded",
+        "evaluations_failed",
+        "candidate_proposals",
+        "known_cost",
+        "cost_unit",
+        "llm_calls",
+        "tokens",
+        "financial_cost",
+        "network",
+        "replay_checksum",
+    ):
+        print(f"{key}={summary[key]}")
     print(f"output_dir={output_dir}")
 
 

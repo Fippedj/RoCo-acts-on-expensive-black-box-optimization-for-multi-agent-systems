@@ -2,8 +2,8 @@
 
 ## 0. 状态、范围与术语
 
-本文冻结 Stage 6 EBBO 的概念接口和后续验收边界。状态是：**P8 设计和 P9a 串行工程 Mock 已发布；P9b 受限角色 Mock 已在工作树离线验证，
-尚未提交/发布；P9c/P10 未开始**。本文不是 RoCo 论文事实的延伸，不表示
+本文冻结 Stage 6 EBBO 的概念接口和后续验收边界。状态是：**P8/P9a 已发布；P9b 有本地提交 `fa3b464`；
+P9c fake-async 工程 Mock 工作树完整离线验收通过、未提交/发布；真实异步和 P10 未开始**。本文不是论文事实，不表示
 GP、概率校准、异步 worker、真实 benchmark、真实昂贵 oracle 或性能实验已经存在。ADR-0008 记录
 决策理由；本文件同时记录 P9a 已冻结的工程子集。
 
@@ -254,7 +254,7 @@ rejected duplicates 和 rejection reason，不能把它们混成 oracle evaluati
 - **进程恢复**：从最后已提交 ledger/event/store snapshot 恢复，对 active reservation 做 reconciliation，
   不假定“本地没结果”等于“oracle 未接受”。
 
-P9a 需要测试每条规则。P9c 才实现并发 reconciliation、取消和 late-result 路径。
+P9a 需要测试其串行规则。P9c Mock 已实现本地取消/late-result 审计；远端 reconciliation 尚未实现。
 
 ### 3.3 稳定 ID、seed 和 replay
 
@@ -313,14 +313,14 @@ P9a 每次最多一个 pending evaluation。若没有可调度候选、预算不
 
 ### 4.3 pending 与异步扩展
 
-P9c 可以把多个 reservation/accepted request 放入 pending set，但必须满足：
+P9c Mock 可以把多个 reservation/accepted request 放入 pending set，并满足：
 
 1. `max_concurrency` 和每一维预算在 dispatch 前检查并预留；
-2. acquisition 获取版本化 pending view；采用 exclusion、fantasy、penalization 或其他方法前先关闭 G-048；
+2. 当前仅采用 pending/已接受候选 exclusion；fantasy、penalization 和概率模型尚未选择；
 3. scheduler 按收到并处理的顺序写 `completion_sequence`，同一批事件以 request ID 作稳定 tie-break；
 4. 每次决策引用唯一 committed observation/posterior snapshot，不能读半提交结果；
 5. 失败结果不进入 objective surrogate，除非另有明确的 failure model；
-6. 恢复时先 reconciliation 所有 active request，再决定等待、取消或标记 unknown；
+6. 本地 Mock 恢复重建已记录的 handle 且不二次 accept；真实远端须另定 reconciliation；
 7. 实际完成顺序影响在线决策时，必须把该顺序视为 run 输入工件，而非声称仅凭 seed 可重建现实时间。
 
 ## 5. surrogate、acquisition 与共享 posterior
@@ -501,30 +501,62 @@ unknown pending 恢复、late result 和 failure-aware 调度。
 
 ### P9b：受限角色控制
 
-**已在当前工作树离线验证，尚未提交/发布。** 实现 global explorer、local exploiter、
+**本地提交 `fa3b464`；远端当前状态未作网络复核。** 实现 global explorer、local exploiter、
 model critic、resource integrator 的结构化控制层和 fake provider。Integrator 只能引用 P9a
 candidate pool；scheduler 仍是唯一 dispatch capability。保留同 surrogate/acquisition 的 no-role
 baseline 和四路径控制流消融。没有真实 LLM、oracle、benchmark 或性能实验。
 
 ### P9c：异步与失败恢复
 
-实现多 reservation、pending view、乱序 completion、failure-aware/cost-aware scheduling、取消、late
-result、reconciliation 和 crash recovery。所有策略必须先关闭 G-047--G-049，且串行模式保持回归。
+**工作树完整离线验收通过，尚未提交/发布。** opt-in 单进程 fake-async 实现多 reservation、
+pending exclusion、确定性乱序 completion、失败事实/成本准入、取消与 late-result 审计，
+以及完整动作边界的显式 checkpoint/resume。真实 worker、远端 reconciliation、任意指令点
+crash recovery、概率 failure model 和 cost-aware acquisition 均未实现；串行默认保持回归。
 
 ### P10：受授权真实实验
 
 只有用户逐项明确授权 benchmark/source/license、真实 provider/oracle、凭据处理方式、硬预算、统计
 计划和结论范围后才可开始。P10 不由 Stage 6 设计或任何 Mock 测试自动授权。
 
-## 10. 已关闭的 P9a/P9b 子项与仍开放内容
+## 10. 已关闭的 P9a/P9b/P9c Mock 子项与仍开放内容
 
 G-042 已由独立 ledger/canonical JSON/ID/seed 代码和旧回归关闭。G-043--G-049 只关闭 P9a 所需子项：
 deterministic nearest-observation surrogate、LCB/pool/tie-break、Mock function/domain、no-noise/no-replicate、
 失败事实且 constraints disabled、serial scheduler，以及固定 Mock cost unit/unknown-overrun 审计。
 
 以下仍开放且不得暗定：真实/通用 surrogate 与 acquisition 比较，外部 benchmark/reference，真实噪声和
-replication，约束与 failure-aware 模型，async pending/concurrency/recovery/late result，真实成本与
+replication，真实约束与 failure-aware 模型，远端异步对账/任意点恢复，真实成本与
 cost-aware acquisition（G-043--G-049 的后续子项）；全部指标/target/重复数/统计问题 G-050；
-可选 memory 与真实 provider G-051。P9b 已关闭 G-043 的角色共享只读 view、G-044 的池内受限选择和
-G-051 的角色 schema/权限/故障回退/四路径工程消融子项；真实 LLM、memory、异步与统计仍开放。
+可选 memory 与真实 provider G-051。P9b 关闭角色受限权限子项；P9c 关闭 G-048/G-052 的
+Mock pending/取消/恢复工程子项。真实 LLM、memory、远端异步与统计仍开放。
 参数表中的 `unset` 是有意状态，不是库缺省值。
+
+## 11. P9c 工程 Mock 状态/恢复协议（已冻结并在工作树验证）
+
+`ebbo-async-mock-scheduler-v1` 仅由单进程确定性 fake completion script 推动；reserved 与
+accepted 合计不得超过显式 `max_concurrency`。调度再次验证有限池 hash、entry membership、
+Mock 域与 `none-v1` 约束、in-flight/历史 duplicate、call ceiling 和同单位成本上界。
+reservation 预占未来 call 与预计成本；accepted 立即计 call、保留预计成本 hold 至终态。
+实际成本替换 hold；超额照实入账，未知成本阻止后续 admission。失败候选继续 exclusion，
+只有成功观测进入目标 surrogate。
+
+`reserved -> cancelled_before_accept` 不发生 call；`accepted -> cancel_requested` 不退款，
+也不代表已取消。Mock cancel acknowledgement 才形成 `cancelled_after_accept` 失败
+Observation 并按其确认的 actual cost 结算。结果先到则结果赢得终态；终态后的重复结果
+或取消确认仅写 late audit。P9c 扩展严格 OracleResult/Observation v1 对既有枚举取消终态
+的校验支持，不改变 P9a/P9b 原有数据。同批 completion 按 request ID 稳定排序，处理
+次序决定 `completion_sequence`；这是 replay 输入，不从 wall-clock 推断。
+
+每个完整动作后写 `ebbo-async-checkpoint-v1`：含 run/config、完整 ledger/pending/request/
+result/pool 状态、append-only store 字节摘要与 canonical SHA-256。事实先落盘，checkpoint
+后原子替换；只允许在此边界显式中断。resume 严格交叉验证两条 store 流及 counter、
+attempt/pending/result 关系；孤儿尾部、丢失/损坏文件或不一致状态 fail closed，不清理、
+不盲重发。恢复的 Mock pending handle 从已存 request/attempt 与相同 outcome script 重建，
+绝不二次 accept。真实远端 exactly-once 和任意指令点 crash recovery 不在 P9c Mock 范围。
+
+补充回调分类：只有已接受并终结的 attempt 的重复完成为 `late_result`；未接受或
+未知 request 的完成为 `completion_rejected`。无效 accept、提前完成、无效取消确认
+均写结构化拒绝事件，不触发 oracle，也不改变已有 reservation/call/Observation。
+
+P9c 的本地验收记录为 221 passed/1 skipped、Ruff check/format、mypy（44 source files）、
+doctor、六条 Stage 2/3/4/P9a/P9b/P9c 离线 smoke 和 `git diff --check` 全部通过。

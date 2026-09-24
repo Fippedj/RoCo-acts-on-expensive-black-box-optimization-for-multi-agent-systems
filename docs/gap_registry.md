@@ -53,24 +53,25 @@
 | G-041 | 多 COP 统计、失败处理与结论边界 | 必须自行设计 | 当前没有任何非 TSP 真实实验；P6 只有 3-seed metadata-only Mock dry-run | P7a 规定每个可比较 cell 最少 10 个匹配 seed、描述统计、10,000 次 paired bootstrap 95% interval 和 fail-closed 失败报告 | 关闭证据：运行前固定的分析计划、全部 planned/completed/failed run 工件、匹配 seed 表、bootstrap 输入/脚本与偏离记录；不得由缺失/失败 run 推导优越性 | E4 真实实验前关闭 |
 | G-042 | EBBO ledger、canonical JSON、稳定 ID 与旧账本兼容 | 必须自行设计/P9a 已关闭 | P9a 新建独立 `roco_ebbo.ebbo` ledger/contracts/store；不导入、不修改 Stage 2--5 `BudgetLedger` | `ebbo-ledger-v1`、`roco-ebbo-canonical-json-v1`、domain-separated full SHA-256 ID、63-bit label seed、非时间 replay checksum；accepted attempt 立即永久计 call | strict JSON/duplicate/nonfinite、ID/seed、budget/cancel/duplicate/failure/timeout/invalid/overrun/unknown、store reopen/replay 和旧 smoke 回归 | P9a 已关闭；未来 schema bridge 需新 gap |
 | G-043 | EBBO surrogate 与共享 posterior | 必须自行设计/P9a 子项关闭 | 论文无 GP/神经 surrogate 证据；P9a 不新增第三方依赖 | `ebbo-nearest-observation-surrogate-v1` 只读成功 Observation；最近目标为 mean、归一化距离为 uncertainty、cold prior 可配置，无拟合或隐藏 fallback | P9a 单元/双运行 replay 已验证；P9b 四角色同一已提交 observation/pool view 与稳定 posterior-view ID 已验证；它不是概率 posterior、校准方法或论文事实 | P9a 工程与 P9b 共享读取子项关闭；P10 模型选择仍开放 |
-| G-044 | acquisition、候选池生成与 tie-break | 必须自行设计/P9a 子项关闭 | EI/UCB/TS 未由论文或仓库决定 | P9a 用 `ebbo-lower-confidence-bound-v1`：`mean-beta*uncertainty` 最小化；seeded finite-domain subset；immutable pool；提案先计数、candidate ID 去重、score/ID tie-break | smoke `beta=2.0`/pool 4；测试 finite/dedup/immutable/tie-break/empty；pending-aware 规则未实现 | P9a pool/tie-break 与 P9b 池内只选 ID/调度复核子项关闭；P9c pending 与 acquisition 比较仍开放 |
+| G-044 | acquisition、候选池生成与 tie-break | 必须自行设计/Mock 子项关闭 | EI/UCB/TS 未由论文或仓库决定 | P9a deterministic LCB/finite pool；P9b 池内只选 ID；P9c 对 pending/已接受候选 exclusion，不做 fantasy | 工程 Mock 的 score/ID tie-break、pending exclusion 和恢复 replay 已测试；acquisition 比较尚无实验 | P9a/P9b/P9c Mock 子项关闭；P10 acquisition 比较开放 |
 | G-045 | EBBO benchmark、搜索域、reference 与真实 oracle 来源 | 必须自行设计/P9a Mock 子项关闭 | TSP/MKP evaluator 不是昂贵黑盒 benchmark；P9a 无数据下载或外部来源 | 工程 fixture `x in [-5,5]`、`f(x)=(x-2)^2+1`、`ebbo-mock-expensive-oracle-v1`；不声称 benchmark/reference | 只证明控制流、审计、失败和 replay；P10 仍需用户授权 source/license/version/reference/provider/oracle/预算 | P9a Mock 子项关闭；P10 real 开放 |
 | G-046 | 噪声、replicate 与 Observation 聚合 | 必须自行设计/P9a 子项关闭 | 论文/仓库未定义真实 EBBO noise 或 replicate | P9a 固定 `noise.kind=none`、`replicate_index=0`，duplicate dispatch 默认拒绝；每次真实接受仍逐 attempt 计费 | Mock no-noise/no-replicate 已测试；真实 noise/heteroscedasticity/聚合/latent regret 未定 | P9a 子项关闭；P10 真实部分开放 |
-| G-047 | 可选约束、不可行点与失败观测建模 | 必须自行设计/P9a 最小子项关闭 | 最小问题允许约束，但 P9a Mock 明确 `none-v1` | failed/timeout/invalid result Observation 的 objective/constraints/feasible 均 null，只有成功合法 Observation 进入 surrogate | 负路径测试已验证不伪造 penalty；constraint surrogate、无可行点和 failure-aware 模型未实现 | P9a failure-fact 子项关闭；P9c/P10 开放 |
-| G-048 | 异步 reservation、pending、乱序完成、取消与恢复 | 必须自行设计/P9a 串行子项关闭 | P9a 仅 `max_concurrency=1`，现实异步顺序仍不能从 seed 重建 | scheduler 是唯一 dispatch 点；preflight reservation、accepted 立即结算、pre-accept cancel、completion sequence 和 duplicate gate 已实现 | P9c 仍须实现 pending acquisition、race/late-result/reconciliation、commit-last crash recovery、过量 reservation 防护 | P9a 串行子项关闭；P9c 开放 |
-| G-049 | evaluation cost 模型与成本感知调度 | 必须自行设计/P9a Mock 子项关闭 | EBBO cost 不能与 provider USD 隐式合并 | P9a expected/actual 固定 `1 mock-evaluation-unit`、source `ebbo-mock-fixed-cost-v1`；财务成本 0；overrun 如实越限、unknown cost 阻止后续 dispatch | overrun/unknown 测试已验证；cost-aware acquisition、换算、多资源和真实公平 profile 未定 | P9a accounting 子项关闭；P9c/P10 开放 |
+| G-047 | 可选约束、不可行点与失败观测建模 | 必须自行设计/Mock 事实子项关闭 | Mock 明确 `none-v1` | P9c 失败、timeout、取消后 Observation objective/constraints/feasible 均 null；只有成功事实进入 surrogate，失败候选排除重发 | 负路径/恢复测试已验证不伪造 penalty；constraint surrogate、真实 failure-aware 模型未实现 | P9a/P9c Mock 事实子项关闭；P10 开放 |
+| G-048 | 异步 reservation、pending、乱序完成、取消与恢复 | 必须自行设计/P9c Mock 子项关闭 | P9a/P9b 串行不变；P9c 单进程 `max_concurrency=2` fake completion | scheduler-only dispatch；reserved+accepted hold、稳定回调排序、取消确认、late audit、显式 checkpoint/resume 与 strict fail-closed | 中断/不中断状态/事件/checksum 等价；损坏/缺失/不匹配 checkpoint 拒绝；真实远端顺序/对账与任意点 crash 未实现 | P9c Mock 子项关闭；真实异步开放 |
+| G-049 | evaluation cost 模型与成本感知调度 | 必须自行设计/Mock 准入子项关闭 | EBBO cost 不能与 provider USD 合并 | P9c 在 P9a fixed Mock cost 上增加 outstanding expected hold；实际超额照实入账、停止新准入并排空 pending；unknown fail-closed | 预算边界/overrun/unknown 测试已验证；cost-aware acquisition、换算、多资源和真实公平 profile 未定 | P9a/P9c Mock accounting 关闭；P10 真实成本开放 |
 | G-050 | EBBO 指标、target、重复数与统计结论 | 必须自行设计 | 当前仅有工程 Mock smoke、没有 EBBO benchmark/E4 工件；reference optimum、cumulative regret 的噪声/失败处理、target 和 repetitions 均未知 | 未来报告 simple regret、条件明确时的 cumulative regret、cost-to-target、失败率和时间；跨 benchmark 不聚合 raw score；沿用 E4 结论闸门 | P10 前冻结 reference/target、seed set、重复数、失败/censoring、interval/多重比较和偏离记录；没有 E4 不作性能/显著性/泛化/优越性结论 | P10 前关闭；当前开放 |
 | G-051 | EBBO 角色输出、权限与可选 memory | 必须自行设计 | Stage 3 角色生成/融合启发式代码，Stage 4 memory 绑定旧 trace/mutation；均不能直接作为 EBBO 调度协议 | P9b 角色固定为 global explorer/local exploiter/model critic/resource integrator；Integrator 只选有限 pool，scheduler 唯一 dispatch；默认无 EBBO memory | P9b strict role request/response/audit schema、越权/未知 ID/重复/非有限拒绝、advisory/hard veto、provider error/timeout/预算耗尽降级与四路径重放已验证；未来 memory 仍须另定 Observation 来源、检索、预算、隐私与 no-memory 对照 | P9b 角色权限/降级/工程消融子项关闭；真实 LLM 与 memory 接入仍开放 |
 
 ## 当前阻断项
 
 Stage 6 P8 设计由 `6efec47` 发布；P9a 由 `4189f65970feab0a17299445641916c6245de4a8`
-发布；P9b 在当前工作树离线验证但未提交/发布。G-042 已关闭；G-043/G-044 的 P9b 共享
-view/池内选择子项及 G-051 的角色 schema/权限/失败降级/四路径工程消融子项已关闭。
-G-043--G-049 的通用/真实选择仍按各行开放，特别是 G-048 async/recovery、G-049 真实
-成本感知；G-050 统计全部开放，G-051 memory/真实 LLM 开放。P9c 才处理异步/pending/
-failure-aware 调度；P10 只有在用户明确授权 benchmark、来源、许可证、真实 provider/oracle
-和预算后才可关闭真实实验与统计子项。P9a/P9b Mock 都不构成 E4 或性能证据。
+发布；P9b 本地提交 `fa3b464`，本地 upstream 引用在 P9c 起点为 0/0，未通过网络复核远端。
+P9c Mock 工作树完整离线验收通过、未提交/发布：221 passed/1 skipped，Ruff check/format、
+mypy、doctor、六条 Stage 2/3/4/P9a/P9b/P9c smoke 和 `git diff --check` 均通过。
+G-042 与 G-052 Mock 子项关闭；G-043/G-044/G-047--G-049 仅关闭具体工程 Mock 子项。
+真实异步 reconciliation、真实成本/约束/噪声、G-050 统计、G-051
+memory/真实 LLM 均开放。P10 只有在用户明确授权 benchmark、来源、许可证、真实
+provider/oracle 和预算后才可关闭真实实验与统计子项。P9a/P9b/P9c Mock 不构成 E4 或性能证据。
 
 Stage 3 的离线工程路径没有未解决的实现阻断项。ADR-0002 继续固定旧 EoH smoke；
 ADR-0003 固定四角色状态机、失败降级、配置分派和单代 trace。G-002–G-004 与
@@ -94,3 +95,11 @@ FSU MKP snapshot 先由 P7b-0 部分关闭 G-037/G-038；P7b 又以 `protocol-on
 `mkp-fsu-evaluator-v1` 和 `mkp-fsu-mock-engineering-v1` 的 12 条离线 Mock run 关闭 G-038、G-039
 及 G-040 的 **FSU MKP E3 子项**。G-041 统计执行保持未关闭；真实 provider/E4、reference 最优性、
 其他 COP 以及论文复现仍全部开放。这里的 E3 只表示已验证离线协议，不表示正式 benchmark 或性能结论。
+
+## G-052：P9c Mock pending 与 checkpoint 工程子项
+
+真实完成顺序、取消确认和远端 accepted 状态不能从 seed 推断，分类为“必须自行设计”。
+ADR-0008 §11 冻结显式 Mock completion script、outstanding 预计成本 hold、取消确认、
+commit-last checkpoint、同批 request ID tie-break 和损坏 fail closed。P9c 完整本地离线门禁已
+验证并关闭此 Mock 子项；真实远端 reconciliation、任意指令点 crash 恢复、概率 pending/
+failure/cost model 仍属 G-047–G-049 开放部分，P10 前另定。

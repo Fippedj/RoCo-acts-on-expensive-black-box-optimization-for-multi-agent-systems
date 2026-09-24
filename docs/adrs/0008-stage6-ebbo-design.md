@@ -1,6 +1,6 @@
 # ADR-0008：Stage 6 多智能体昂贵黑盒优化设计
 
-- 状态：Accepted；P8 由 `6efec47` 发布，P9a 由 `4189f65970feab0a17299445641916c6245de4a8` 发布；P9b 工作树离线验证、未提交/发布
+- 状态：Accepted；P8 `6efec47` 与 P9a `4189f65970feab0a17299445641916c6245de4a8` 已发布；P9b 本地提交 `fa3b464`；P9c 工作树 Mock 完整离线验收通过、未提交/发布
 - 日期：2026-09-22
 - 基线：`08712c5a065818889b1b11b315dadafee9437d06`
 - 上游：ADR-0001、ADR-0003、ADR-0004、ADR-0007、
@@ -30,8 +30,8 @@ oracle 是通过 `OracleRequest`/`OracleResult` 访问的昂贵评估边界。�
 本设计任务范围内。P9a 只能实现串行、确定性的 Mock expensive-oracle。
 
 JSON-safe 概念契约、字段约束和状态转换由 `docs/paper_spec/ebbo_design.md` 唯一定义。这里的“概念”
-表示运行时代码必须保持该语义。P9a 已实现严格、版本化的 Mock 子集；P9b 已实现受限离线
-角色 Mock。P9c 扩展与真实 oracle 仍不存在。
+表示运行时代码必须保持该语义。P9a 已实现严格、版本化的串行 Mock；P9b 已实现受限离线
+角色 Mock；P9c 已在工作树实现单进程 fake-async Mock。真实 oracle 与远端异步仍不存在。
 
 ### 2. EBBO 使用独立的多维审计账本
 
@@ -157,8 +157,8 @@ simple regret；cumulative regret、cost-to-target、失败率、wall-clock 和�
 
 - **P9a（`4189f65970feab0a17299445641916c6245de4a8` 已发布）**：确定性 Mock expensive-oracle、四个概念数据契约、独立
   Observation/ledger、串行最小 BO baseline；只产生工程控制流证据。
-- **P9b（工作树离线验证，未提交/发布）**：四角色控制层和只能引用有限 candidate pool 的 resource-integrator 调度；不增加真实 oracle。
-- **P9c**：异步/pending/failure-aware 调度、reservation、取消、恢复和 late-result 审计。
+- **P9b（本地提交 `fa3b464`）**：四角色控制层和只能引用有限 candidate pool 的 resource-integrator 调度；不增加真实 oracle。
+- **P9c（工作树 Mock 已验证、未提交/发布）**：单进程 fake-async pending、reservation、取消确认、失败/成本账本、显式恢复和 late-result 审计；不实现真实 worker。
 - **P10**：只有用户明确授权 benchmark、来源、许可证、真实 provider/oracle 和硬预算后，才能设计并
   执行真实实验；统计计划也必须在运行前冻结。
 
@@ -225,5 +225,40 @@ entry membership、duplicate、Mock `none-v1` 约束/域与预算；角色不能
 ## 后果
 
 该决策使昂贵 oracle 的不可追回消耗、语言角色的权限和 posterior/candidate-pool 的统计边界可审计，
-并为串行 Mock 到异步真实实验提供分层路径。P9a/P9b 现在只产生串行工程 Mock 控制流证据，不产生性能数字、多智能体效果或真实 provider 能力；
-真实 benchmark/noise/constraints/cost、并发、memory 和统计仍须以后用证据和测试逐项关闭。所有这些限制是有意边界，不能通过修改现有 Stage 2--5 行为来规避。
+并为串行 Mock 到异步真实实验提供分层路径。P9a/P9b 只产生串行工程 Mock 控制流证据；
+P9c 只产生 fake-async 状态/恢复证据，不产生性能数字、多智能体效果或真实 provider 能力。
+真实 benchmark/noise/constraints/cost、远端并发、memory 和统计仍须以后用证据和测试逐项关闭。
+
+### 11. P9c 离线异步 Mock 决策（实现前冻结）
+
+P9c 独立启用 `ebbo-async-mock-scheduler-v1`；P9a/P9b 默认串行路径与已有 replay 不变。
+显式 `max_concurrency` 限制 reserved 加 accepted 的 outstanding 数量。reservation 预占
+未来 call 和同单位预计成本；oracle 接受后 call 立即永久增加，预计成本继续作为 pending
+hold，直到实际成本结算。准入使用 `known_cost + 所有 outstanding expected cost`；实际
+超额照实记账并停止新发送，未知实际成本不当作零。失败候选也排除重发，失败观测不进入
+目标 surrogate。P9c 的成本/失败感知仅限准入和事实保留，不实现概率模型或 cost-aware
+acquisition。
+
+完成顺序由版本化本地 Mock completion script 明确给定，同批回调按 request ID 排序。
+接受前取消释放 reservation、不计 call；接受后先记 `cancel_requested`，仅 Mock 确认取消
+才按已确认实际成本形成 `cancelled_after_accept` 失败 Observation；若结果先到则结果赢得
+终态。终态之后的重复/迟到结果只追加审计，不二次结算或覆盖事实。P9c 在现有严格
+OracleResult/Observation v1 枚举内增补取消后终态校验，旧结果和 replay 保持不变。
+
+checkpoint 只在完整状态转换及 append-only 事实落盘后 commit-last 原子替换。显式 resume
+核验 schema、config/run 身份、checkpoint SHA-256、store 字节摘要和 ledger/pending/结果
+交叉不变量；损坏、孤儿尾部或状态不明一律 fail closed，不截断或重发。恢复已接受的本地
+Mock pending 只重建确定性 handle，不再次调用 accept。仅承诺相同 completion script 的
+显式边界中断恢复与不中断运行非时间等价；真实远端 reconciliation、任意指令点 crash
+恢复及真实成本调度仍开放。
+
+P9c Mock 恢复与预算边界已由独立单元/集成测试覆盖；实际成本超预计仍如实入账，
+可能使 `known_cost` 超过准入 ceiling，但不得退款，之后不再准入新请求并先排空既有 pending。
+本节不授予真实远端 exactly-once 或任意指令点 crash consistency 保证。
+
+P9c 本地完整门禁还包括 221 passed/1 skipped、Ruff check/format、mypy、doctor、
+Stage 2/3/4 和 P9a/P9b/P9c 六条 CLI smoke、`git diff --check`；这些不是 E4 证据。
+
+仅已接受且已有终态的重复/迟到完成回调标记为 `late_result`；从未被 oracle 接受的
+reservation、接受前取消或未知 request 的完成回调是结构化拒绝，不能冒充 late result。
+非法状态下的 accept、completion 和 cancel acknowledgement 也留下拒绝审计且不计 call。

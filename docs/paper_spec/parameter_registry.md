@@ -65,15 +65,17 @@ config：P6 的 3 seeds 与 `24/120000/24/24/1 USD/120 s` 仍只适用于 ADR-00
 
 ## Stage 6 EBBO 设计参数
 
-本节登记 ADR-0008 与 `ebbo_design.md` 的设计参数。它们不是 RoCo 论文披露值。P9a 行标记的值已由 `4189f65970feab0a17299445641916c6245de4a8` 发布；P9b 工程值在
-当前工作树离线验证，但尚未提交/发布；`unset` 表示后续任务仍须以 gap 关闭证据和版本化配置
-决定，调用方不得自行选择库默认值。
+本节登记 ADR-0008 与 `ebbo_design.md` 的工程参数，不是 RoCo 论文披露值。P9a 已由
+`4189f65970feab0a17299445641916c6245de4a8` 发布；P9b 本地提交为 `fa3b464`；P9c
+仅在工作树完整离线验收通过、未提交/发布。P9c 门禁为 221 passed/1 skipped、Ruff
+check/format、mypy（44 source files）、doctor、六条旧/新 CLI smoke 和 `git diff --check`。
+`unset` 需以后用 gap 关闭证据和版本化配置决定。
 
 | 参数名 | Stage 6 冻结值/候选 | 当前状态 | 适用与证据边界 |
 |---|---|---|---|
 | `ebbo.problem.objective_direction` | `minimize`，单一 primary objective | 设计冻结 | maximize/多目标需新 contract；约束统一为 `g_i(x) <= 0` |
 | `ebbo.oracle.request_schema` / `result_schema` | `ebbo-oracle-request-v1` / `ebbo-oracle-result-v1` | P9a strict JSON 已验证 | 真实 endpoint、credential、网络和付费 oracle 不在 schema 或当前授权中 |
-| `ebbo.observation.schema` / `status_contract` | `ebbo-observation-v1` / ADR-0008 状态转换 | P9a 成功/失败/timeout/非法 result 已验证 | 失败 Observation 不含 objective/constraint/penalty；late result 仍未实现 |
+| `ebbo.observation.schema` / `status_contract` | `ebbo-observation-v1` / ADR-0008 状态转换 | P9a 成功/失败/timeout/非法 result 与 P9c 取消终态已验证 | 失败 Observation 不含 objective/constraint/penalty；P9c late result 只审计、不覆盖 |
 | `ebbo.budget.ledger_schema` | `ebbo-ledger-v1`；oracle calls、成功/失败 evaluations、candidate proposals、LLM calls/tokens、source+unit cost、wall-clock 分账 | P9a 独立实现已验证 | `roco_ebbo.ebbo.ledger`；现有 `BudgetLedger` 未修改；G-042 已关闭 |
 | `ebbo.budget.acceptance_rule` | oracle 接受的每个 attempt 永久计 `oracle_calls` 与可确认实际成本 | 设计冻结 | timeout、失败、接受后取消和实际重复接受均不退款 |
 | `ebbo.run.root_seed` / `seed_derivation_version` | smoke `9061` / `roco-ebbo-canonical-json-v1` SHA-256 envelope，63-bit seed | P9a 已验证 | component label + stable logical inputs；时间不参与；未来实验 root seed 仍须预注册 |
@@ -84,8 +86,12 @@ config：P6 的 3 seeds 与 `24/120000/24/24/1 USD/120 s` 仍只适用于 ADR-00
 | `ebbo.noise.model` / `replication_policy` | P9a Mock 为 none/默认不 replicate；真实设置 `unset` | 部分冻结 | 噪声聚合、重复评估和 latent/observed regret 见 G-046 |
 | `ebbo.constraints.contract` / `failure_model` | P9a `none-v1` / 失败事实只入 store、不入 surrogate；真实约束/model=`unset` | P9a 最小子项关闭 | 失败不得变成惩罚 objective；约束 BO/failure-aware 调度仍见 G-047 |
 | `ebbo.cost.model` / `cost_aware_acquisition` | P9a fixed `1 mock-evaluation-unit`，source `ebbo-mock-fixed-cost-v1` / `unset` | Mock accounting 已验证；cost-aware 开放 | 实际 overrun/unknown fail-closed 已测；真实成本与调度仍见 G-049 |
-| `ebbo.scheduler.max_concurrency` | P9a `1`；P9b 仍应为 `1`；P9c `unset` | P9a scheduler-only dispatch 已验证，异步开放 | preflight、accepted、pre-accept cancel、duplicate 已测；pending/recovery/late result 见 G-048 |
-| `ebbo.roles` | global explorer、local exploiter、model critic、resource integrator | P9b 离线 Mock 已验证、未提交/发布 | Integrator 只引用有限 pool entry，scheduler 唯一 dispatch；见 G-051 |
+| `ebbo.scheduler.max_concurrency` | P9a/P9b `1`；P9c smoke `2` | P9c opt-in Mock 已验证 | reserved+accepted 合计；唯一 scheduler dispatch；不是远端 worker，见 G-048 |
+| `ebbo.scheduler.completion_policy` | `reverse-ready-v1`，同批 request ID 排序 | P9c Mock 已验证 | 单进程确定性脚本；不从 wall-clock 推断真实完成顺序 |
+| `ebbo.scheduler.pending_policy` | in-flight 与已接受候选排除；不做 fantasy | P9c Mock 已验证 | 仅成功观测进入已有 surrogate；失败仍占历史 duplicate 集合 |
+| `ebbo.budget.async_ledger_schema` | `ebbo-async-ledger-v1`；expected-cost hold + accepted call + actual settlement | P9c Mock 已验证 | accepted 不退款；实际超额照实记录并关闭新准入；未知成本 fail-closed |
+| `ebbo.checkpoint.schema` | `ebbo-async-checkpoint-v1`；完整动作 commit-last | P9c Mock 已验证 | strict config/run/store/ledger/pending 交叉校验；仅显式边界恢复，不承诺真实远端 exactly-once |
+| `ebbo.roles` | global explorer、local exploiter、model critic、resource integrator | P9b 本地提交 `fa3b464` | Integrator 只引用有限 pool entry，scheduler 唯一 dispatch；见 G-051 |
 | `ebbo.roles.request_schema` / `response_schema` / `audit_schema` | `ebbo-role-request-v1` / `ebbo-role-response-v1` / `ebbo-role-audit-v1` | P9b 已验证 | 严格 JSON、完整 SHA-256 ID、池内 entry/region/strategy、四类 Critic risk、Integrator 唯一选择；角色没有 oracle permit |
 | `ebbo.roles.provider` / `token_accounting` | `ebbo-deterministic-fake-role-provider-v1` / UTF-8 bytes ÷ 4 向上取整 | P9b 工程 Mock 已验证 | 无真实 LLM/HTTP/key/network；`llm_calls` 仅计 fake invocation；tokens 不代表真实 tokenizer 或账单 |
 | `ebbo.roles.veto_mode` / `fallback` | smoke `advisory`；可选 `hard` / P9a acquisition score+ID 排序 | P9b 已验证 | hard 排除有效 veto；全部 veto 则不 dispatch；非法输出、provider error/timeout、角色预算耗尽均审计回退 |
