@@ -5,7 +5,8 @@ Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic
 This repository contains deterministic Stage 2/3 baselines, the published Stage 4 V1 opt-in offline
 memory path, a Stage 5 TSP-only Mock dry-run, a P7a multi-COP/statistics design, one P7b FSU MKP
 offline integration protocol, and the completed Stage 6 EBBO design specification. Stage 6 runtime
-implementation has **not** started. The repository does **not**
+now includes the locally verified, uncommitted/unpublished P9a deterministic offline engineering Mock
+foundation; P9b/P9c and real experiments have **not** started. The repository does **not**
 claim to be the authors' official implementation or a completed paper reproduction. No HTTP transport,
 real-provider interoperability run, statistical experiment, or paper experiment has been performed.
 The only external COP snapshot is the narrowly authorized, Git-ignored FSU P01--P06 MKP data used by
@@ -26,6 +27,8 @@ python -m roco_ebbo doctor
 python -m roco_ebbo smoke --config configs/smoke/tsp_mock.yaml
 python -m roco_ebbo smoke --config configs/smoke/tsp_roco_mock.yaml
 python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
+python -m roco_ebbo ebbo-smoke --config configs/smoke/ebbo_mock.yaml \
+  --output-dir /tmp/roco-ebbo-p9a-smoke
 ```
 
 Open the folder from WSL with VS Code:
@@ -54,6 +57,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `configs/smoke/tsp_mock.yaml` | Unchanged Stage 2 deterministic EoH regression configuration |
 | `configs/smoke/tsp_roco_mock.yaml` | Deterministic Stage 3 four-role collaboration configuration |
 | `configs/smoke/tsp_memory_mock.yaml` | Opt-in two-generation Stage 4 offline memory configuration |
+| `configs/smoke/ebbo_mock.yaml` | P9a serial deterministic Mock expensive-oracle smoke; no network or LLM |
 | `configs/experiments/tsp_mock_dry_run.yaml` | Fixed three-seed TSP protocol dry-run; Mock only, not a paper experiment |
 | `configs/experiments/mkp_fsu_mock_dry_run.yaml` | P01--P06 protocol-only MKP engineering dry-run; Mock/network-unused only |
 | `docs/data_provenance/mkp_fsu_knapsack_multiple_v1.md` | Authorized FSU source/license, raw checksums, parser/evaluator/split and E3 boundary |
@@ -61,6 +65,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `docs/paper_spec/ebbo_design.md` | JSON-safe EBBO contracts, data flow, pending semantics, evaluation plan, and P9 task split |
 | `configs/providers/openai_compatible_fake.example.yaml` | Documentation-only, no-key fake-transport adapter example |
 | `src/roco_ebbo/llm/openai_compatible.py` | Transport-neutral EoH/RoCo adapter and audit contracts; no HTTP implementation |
+| `src/roco_ebbo/ebbo/` | Independent P9a contracts, ledger/store, Mock oracle, baseline, scheduler, and smoke runtime |
 | `src/roco_ebbo/` | RoCo / EBBO implementation package |
 | `tests/` | Unit, integration, and regression tests |
 | `scripts/` | WSL bootstrap and later experiment entry points |
@@ -78,8 +83,8 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
   invent billing usage.
 - An EBBO oracle attempt counts as an `oracle_call` as soon as the oracle accepts it, even if it later
   fails, times out, is cancelled, or duplicates earlier work. EBBO oracle/evaluation/candidate/LLM/token/
-  cost/wall-clock ledgers remain separate from the existing Stage 2--5 `BudgetLedger` until P9 defines
-  and tests an explicit compatibility boundary.
+  cost/wall-clock ledgers are implemented independently in P9a and remain separate from the existing
+  Stage 2--5 `BudgetLedger`; no old ledger behavior was extended or reinterpreted.
 
 ## Paper facts versus engineering decisions
 
@@ -232,9 +237,9 @@ reference optimality, G-041 statistical execution, a real provider, paper reprod
 and superiority conclusions. P7b implementation, commit, and publication status must be checked with
 live Git rather than inferred from this historical working-tree note.
 
-## Stage 6 EBBO design
+## Stage 6 EBBO: P8 design and P9a engineering Mock
 
-ADR-0008 and `docs/paper_spec/ebbo_design.md` complete the **design-only** P8 checkpoint. EBBO means
+ADR-0008 and `docs/paper_spec/ebbo_design.md` complete the published P8 design checkpoint. EBBO means
 that objective and optional constraint feedback are available only through an expensive oracle; it is
 not the paper's black-box prompt-visibility setting. The design freezes JSON-safe `OracleRequest`,
 `OracleResult`, `Observation`, and `EvaluationStatus` concepts, acceptance-based oracle accounting,
@@ -247,18 +252,31 @@ They cannot call the oracle. In particular, the integrator can only select entri
 the surrogate/acquisition candidate pool; the scheduler alone may dispatch after budget, constraint,
 pending, and duplicate checks.
 
-No GP, neural surrogate, acquisition implementation, BO library, oracle worker, async scheduler,
-benchmark, real provider, network call, or experiment was added. EI, UCB, and Thompson sampling are
-future baseline candidates, not supported features. G-042--G-051 keep the ledger implementation,
-surrogate, acquisition, benchmark, noise, constraints, cost, concurrency, roles/memory, and statistics
-choices explicit.
+P9a is now implemented and locally verified in the working tree, but is not committed or published. It
+adds strict versioned JSON contracts and SHA-256 identities, an independent `ebbo-ledger-v1`, append-only
+audit/Observation JSONL, a deterministic integer Mock domain, an offline Mock oracle, immutable finite
+candidate pools, and the scheduler-only `max_concurrency=1` dispatch path. Accepted attempts immediately
+consume `oracle_calls`; later failure, timeout, invalid result, unknown cost, or actual-cost overrun never
+refunds the call. Preflight rejection, pre-accept cancellation, duplicates, and empty pools remain audited
+without consuming a call.
+
+The dependency-free single-agent engineering baseline is
+`ebbo-nearest-observation-surrogate-v1` plus minimization
+`ebbo-lower-confidence-bound-v1` (`mean - beta * normalized_distance_uncertainty`). The smoke uses the
+finite integer domain `[-5,5]`, objective `(x-2)^2+1`, no constraints/no noise, `beta=2`, pool size 4,
+root seed 9061, and fixed cost 1 `mock-evaluation-unit`. This is not a GP, calibrated probabilistic BO
+model, paper method, external benchmark, or performance result.
+
+The fixed smoke ledger is 5 accepted oracle calls, 5 successful/0 failed evaluations, 20 candidate
+proposals, 5 `mock-evaluation-unit`, 0 LLM calls/tokens, 0 financial cost, and `network=unused`. Same-seed
+runs reproduce pools, requests, results, Observations, discrete ledger state, and the non-time replay
+checksum; wall-clock is deliberately excluded.
 
 The required implementation order is:
 
-1. P9a: deterministic Mock expensive-oracle, Observation/ledger/store, and a serial minimal single-agent
-   BO baseline.
-2. P9b: restricted four-role control and candidate-pool-only scheduling.
-3. P9c: asynchronous pending/failure-aware/cost-aware scheduling and recovery.
+1. P9a: locally verified in the working tree; commit/publication still pending.
+2. P9b: restricted four-role control and candidate-pool-only scheduling; not implemented.
+3. P9c: asynchronous pending/failure-aware/cost-aware scheduling and recovery; not implemented.
 4. P10: only after explicit authorization of benchmark, source, license, real provider/oracle, and hard
    budgets, preregister and run real experiments.
 

@@ -1,11 +1,11 @@
 # ADR-0008：Stage 6 多智能体昂贵黑盒优化设计
 
-- 状态：Accepted for Stage 6 design；实现未开始
+- 状态：Accepted；P8 设计已由 `6efec47` 发布，P9a 已在工作树离线验证、尚未提交/发布
 - 日期：2026-09-22
 - 基线：`08712c5a065818889b1b11b315dadafee9437d06`
 - 上游：ADR-0001、ADR-0003、ADR-0004、ADR-0007、
   `docs/paper_spec/ebbo_design.md`
-- 范围：EBBO 的问题、oracle、审计、模块、角色权限、后续评测和实施顺序；本 ADR 不实现运行时代码
+- 范围：EBBO 的问题、oracle、审计、模块、角色权限、后续评测和实施顺序；P9a 工程选择见第 9 节
 
 ## 背景
 
@@ -30,7 +30,8 @@ oracle 是通过 `OracleRequest`/`OracleResult` 访问的昂贵评估边界。�
 本设计任务范围内。P9a 只能实现串行、确定性的 Mock expensive-oracle。
 
 JSON-safe 概念契约、字段约束和状态转换由 `docs/paper_spec/ebbo_design.md` 唯一定义。这里的“概念”
-表示后续代码必须保持该语义；当前仓库尚没有这些运行时类型。
+表示运行时代码必须保持该语义。P9a 已实现严格、版本化的 Mock 子集；真实 oracle 和 P9b/P9c
+扩展仍不存在。
 
 ### 2. EBBO 使用独立的多维审计账本
 
@@ -55,8 +56,9 @@ JSON-safe 概念契约、字段约束和状态转换由 `docs/paper_spec/ebbo_de
 默认不调用 oracle；若版本化策略明确允许 replicate，则使用不同 replicate index/request ID，按真实
 接受次数计费。P9a 不实现 evaluation cache。
 
-本设计不复用、不扩写也不改变 Stage 2--5 `BudgetLedger` 的现有语义。P9 若需要桥接、扩展或新建
-ledger，必须先关闭 G-042，并以版本化 schema、迁移/兼容测试和旧 smoke 不变为验收条件。
+本设计不复用、不扩写也不改变 Stage 2--5 `BudgetLedger` 的现有语义。P9a 已在独立
+`roco_ebbo.ebbo.ledger.EBBOLedger` 中实现 `ebbo-ledger-v1` 并关闭 G-042；未来桥接或扩展仍须新
+schema、迁移/兼容测试和旧 smoke 不变。
 
 ### 3. 稳定身份、随机性和重放不依赖墙钟
 
@@ -88,8 +90,8 @@ Stage 6 采用以下边界：
 可进入目标/约束 surrogate；失败 Observation 保留在事实存储中，只能由明确支持 failure-aware 的组件
 消费，不能被静默转成虚构目标值。选择、调度和完成提交的完整数据流见 EBBO 规格。
 
-本 ADR 不指定 GP、神经 surrogate、核、优化器或第三方 BO 库。P9a 可以在关闭对应 gap 后采用最小
-实现，但不得在文档中倒推为论文事实或已验证能力。
+本 ADR 不指定 GP、神经 surrogate、核、优化器或第三方 BO 库。P9a 第 9 节冻结一个无第三方依赖的
+最小工程实现；它不得被倒推为论文事实、通用 BO 推荐或性能已验证能力。
 
 ### 5. pending、异步、成本和恢复先设计后实现
 
@@ -151,8 +153,8 @@ simple regret；cumulative regret、cost-to-target、失败率、wall-clock 和�
 
 ### 8. 后续任务严格按 P9a、P9b、P9c、P10 分离
 
-- **P9a**：确定性 Mock expensive-oracle、四个概念数据契约、独立 Observation/ledger、串行最小 BO
-  baseline；先关闭 ledger、surrogate、acquisition、Mock benchmark 的实现选择 gap。
+- **P9a（工作树已验证，未提交/发布）**：确定性 Mock expensive-oracle、四个概念数据契约、独立
+  Observation/ledger、串行最小 BO baseline；只产生工程控制流证据。
 - **P9b**：四角色控制层和只能引用有限 candidate pool 的 resource-integrator 调度；不增加真实 oracle。
 - **P9c**：异步/pending/failure-aware 调度、reservation、取消、恢复和 late-result 审计。
 - **P10**：只有用户明确授权 benchmark、来源、许可证、真实 provider/oracle 和硬预算后，才能设计并
@@ -161,9 +163,36 @@ simple regret；cumulative regret、cost-to-target、失败率、wall-clock 和�
 不得把 P9a 的串行 Mock 实现描述成异步、真实昂贵 oracle 或多智能体效果验证；不得为了加速而合并
 这些阶段并越过前置 gap。
 
+### 9. P9a 工程选择冻结
+
+P9a 选择 `ebbo-nearest-observation-surrogate-v1`：对未观测点取一维整数距离最近的成功 Observation
+目标值作为 mean，以 `abs(x-x_nearest)/(upper-lower)` 作为 uncertainty；没有成功 Observation 时使用
+配置化 finite prior mean。距离并列按 `observation_id` 排序。它没有拟合、校准、概率分布或隐藏
+fallback，只为保持 stdlib-only、透明、确定性和可单元测试。
+
+acquisition 固定为 minimization
+`ebbo-lower-confidence-bound-v1: score = mean - beta * uncertainty`；分数升序、再按完整 SHA-256
+`candidate_id` 升序 tie-break。Mock smoke 使用 `beta=2.0`、pool size `4`。候选来自按 root seed 和
+逻辑 iteration 派生顺序的有限整数域，pool 为 immutable tuple，重复提案计 `candidate_proposals` 后
+去重。该 LCB 只是 P9a 工程 baseline，不声称等同论文 UCB、已经校准或优于 EI/TS。
+
+Mock problem 固定为 `x in {-5,...,5}`、`f(x)=(x-2)^2+1`、无约束、`noise.kind=none`、默认拒绝重复、
+每次 expected/actual cost 为 `1 mock-evaluation-unit`；网络状态为 `unused`，财务成本为 0。它不对应
+外部 benchmark、论文数据或真实昂贵 oracle。scheduler 固定 `max_concurrency=1`，adapter 只有持有
+scheduler 私有 permit 才能 accept/complete。
+
+canonical JSON 固定为 `roco-ebbo-canonical-json-v1`：UTF-8、Unicode 不转义、object key 词典序、
+无多余空白、`allow_nan=false`，读取时拒绝 duplicate keys 和非有限常量。ID 以 contract kind 和该
+canonical payload 作 domain separation，保存 `kind-<64 hex SHA-256>`；seed 以同一版本化 envelope
+派生 63-bit 非负整数。时间戳和 wall-clock 不进入 ID 或 replay checksum。
+
+P9a smoke 的固定 root seed 为 `9061`，五次串行成功得到 5 oracle calls、5 succeeded、0 failed、
+20 candidate proposals、5 `mock-evaluation-unit`、0 LLM calls/tokens、0 财务成本、
+`network=unused`。这些是精确工程回归计数，不是 regret、benchmark 或方法性能证据。
+
 ## 后果
 
 该决策使昂贵 oracle 的不可追回消耗、语言角色的权限和 posterior/candidate-pool 的统计边界可审计，
-并为串行 Mock 到异步真实实验提供分层路径。代价是 Stage 6 设计不会立即产生 BO 算法、性能数字或
-真实 provider 能力；surrogate、acquisition、benchmark、噪声、约束、成本、并发和统计仍须以后用
-证据和测试逐项关闭。所有这些限制是有意边界，不能通过修改现有 Stage 2--5 行为来规避。
+并为串行 Mock 到异步真实实验提供分层路径。P9a 现在只产生一个串行工程 baseline，不产生性能数字、
+多智能体效果或真实 provider 能力；真实 benchmark/noise/constraints/cost、并发、角色和统计仍须以后
+用证据和测试逐项关闭。所有这些限制是有意边界，不能通过修改现有 Stage 2--5 行为来规避。

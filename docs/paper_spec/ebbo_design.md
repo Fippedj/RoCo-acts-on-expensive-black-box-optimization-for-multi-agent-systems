@@ -2,9 +2,10 @@
 
 ## 0. 状态、范围与术语
 
-本文冻结 Stage 6 EBBO 的概念接口和后续验收边界。状态是：**设计完成，运行时实现未开始**。
-本文不是 RoCo 论文事实的延伸，不表示 GP、贝叶斯优化、异步 worker、真实 benchmark 或性能实验已经
-存在。ADR-0008 记录决策理由；本文件是后续 P9 的字段、状态机、数据流和测试规范。
+本文冻结 Stage 6 EBBO 的概念接口和后续验收边界。状态是：**P8 设计已发布；P9a 串行工程 Mock
+已在工作树离线验证，尚未提交/发布；P9b/P9c/P10 未开始**。本文不是 RoCo 论文事实的延伸，不表示
+GP、概率校准、异步 worker、真实 benchmark、真实昂贵 oracle 或性能实验已经存在。ADR-0008 记录
+决策理由；本文件同时记录 P9a 已冻结的工程子集。
 
 必须区分两种 black-box：
 
@@ -16,8 +17,10 @@
 
 本文中的 JSON-safe 值只允许 `null`、布尔、字符串、整数、有限浮点数、上述值组成的数组，以及键为
 字符串的对象。禁止 NaN、Infinity、bytes、tuple、set、异常对象、类实例和未版本化的 pickle。
-canonical JSON 必须冻结 UTF-8、键排序、数字规范和空白规则；具体 canonicalization 版本由 P9a 实现
-前关闭 G-042。
+P9a canonical JSON 版本为 `roco-ebbo-canonical-json-v1`：UTF-8、`ensure_ascii=false`、object key
+词典序、紧凑分隔符、`allow_nan=false`；读取时用 duplicate-key hook 和 non-finite constant hook
+fail closed。哈希 envelope 显式包含 canonical version、kind 和 payload，输出 `kind-<64 hex SHA-256>`。
+这关闭 G-042 的 P9a canonicalization/ID 子项；它不是跨语言 RFC canonical JSON 声明。
 
 ## 1. 最小问题契约
 
@@ -39,8 +42,14 @@ objective；多目标或 maximize 需新版本。约束可为空。没有成功 
 objective/constraint。已知噪声、未知噪声、heteroscedastic noise、replicate 策略及聚合方式均不得由
 实现暗定；P9a 的 deterministic Mock 明确使用 `noise_contract.kind="none"`。
 
+P9a `ebbo-mock-integer-space-v1` 是工程 fixture：`x` 为闭区间 `[-5,5]` 的单个整数，
+`ebbo-mock-expensive-oracle-v1` 返回 `f(x)=(x-2)^2+1`，constraints disabled，默认不允许 replicate。
+它不对应任何外部 benchmark 或论文函数。
+
 evaluation cost 可以是固定、候选相关或结果后确认，但必须用非负有限数和显式 unit 表达。USD、秒、
 设备小时与抽象 oracle-unit 不能隐式相加。wall-clock 是独立观察量，不等同于 evaluation cost。
+P9a 固定 expected/actual cost 为 `1 mock-evaluation-unit`，source 为
+`ebbo-mock-fixed-cost-v1`；财务成本另记为 0，不能把抽象 cost 写成 USD。
 
 ## 2. JSON-safe 概念契约
 
@@ -71,26 +80,39 @@ result 由 G-048 的新策略决定。
 ```json
 {
   "schema_version": "ebbo-oracle-request-v1",
-  "request_id": "sha256:...",
-  "run_id": "sha256:...",
-  "candidate_id": "sha256:...",
-  "candidate": {},
+  "request_id": "request-<64 hex>",
+  "run_id": "run-<64 hex>",
   "problem_id": "...",
-  "problem_version": "...",
-  "oracle_contract_version": "...",
+  "problem_version": "mock-quadratic-engineering-v1",
+  "oracle_contract_version": "ebbo-mock-expensive-oracle-v1",
+  "candidate_id": "candidate-<64 hex>",
+  "candidate": {"x": 0},
+  "objective_direction": "minimize",
+  "constraint_contract": {"enabled": false, "version": "none-v1"},
   "logical_evaluation_index": 0,
   "replicate_index": 0,
   "oracle_seed": 0,
   "timeout_seconds": 1.0,
-  "expected_cost": {"amount": 1.0, "unit": "oracle-unit"},
-  "reservation_id": "sha256:...",
-  "deduplication_key": "sha256:...",
+  "seed_lineage": {
+    "root_seed": 9061,
+    "request_index": 0,
+    "candidate_seed": 0,
+    "oracle_seed": 0
+  },
+  "budget_reservation": {
+    "expected_cost": 1.0,
+    "cost_unit": "mock-evaluation-unit",
+    "cost_source": "ebbo-mock-fixed-cost-v1",
+    "oracle_calls": 1
+  },
+  "reservation_id": "reservation-<64 hex>",
+  "deduplication_key": "deduplication-<64 hex>",
   "provenance": {
-    "candidate_pool_id": "sha256:...",
-    "pool_entry_id": "sha256:...",
-    "posterior_snapshot_id": "sha256:...",
-    "acquisition_contract": "..."
-  }
+    "candidate_pool_id": "pool-<64 hex>",
+    "acquisition_contract": "ebbo-lower-confidence-bound-v1",
+    "scheduler": "ebbo-serial-scheduler-v1"
+  },
+  "created_at_utc": null
 }
 ```
 
@@ -100,7 +122,7 @@ result 由 G-048 的新策略决定。
 - `logical_evaluation_index` 在 reservation 时单调分配，不使用完成顺序；
 - 不需要随机性的 oracle 使用 `oracle_seed=null`，不能用系统时间填充；
 - `timeout_seconds` 的作用域由 problem contract 定义；
-- `expected_cost` 是调度依据，不代替实际结果成本；未知时用 `null`，不能填 0；
+- `budget_reservation.expected_cost` 是调度依据，不代替实际结果成本；未知时用 `null`，不能填 0；
 - `request_id` 哈希 request identity 字段但排除时间、runtime 和可变传输元数据；
 - `replicate_index>0` 必须由已冻结的噪声/replication 策略授权，否则视为重复。
 
@@ -111,24 +133,26 @@ result 由 G-048 的新策略决定。
 ```json
 {
   "schema_version": "ebbo-oracle-result-v1",
-  "request_id": "sha256:...",
-  "attempt_id": "sha256:...",
+  "result_id": "result-<64 hex>",
+  "request_id": "request-<64 hex>",
+  "attempt_id": "attempt-<64 hex>",
   "status": "succeeded",
   "objective": 0.0,
-  "constraints": {"constraint-0": -1.0},
-  "feasible": true,
-  "actual_cost": {"amount": 1.0, "unit": "oracle-unit"},
+  "constraints": null,
+  "feasible": null,
+  "failure": null,
+  "actual_cost": {
+    "amount": 1.0,
+    "unit": "mock-evaluation-unit",
+    "source": "ebbo-mock-fixed-cost-v1"
+  },
   "noise": {"kind": "none"},
   "oracle_metadata": {
-    "oracle_version": "mock-expensive-oracle-v1",
-    "result_hash": "sha256:..."
+    "adapter_version": "ebbo-mock-expensive-oracle-v1",
+    "network": "unused"
   },
-  "timing": {
-    "accepted_at_utc": "2026-01-01T00:00:00Z",
-    "completed_at_utc": "2026-01-01T00:00:01Z",
-    "duration_seconds": 1.0
-  },
-  "failure": null
+  "started_at_utc": null,
+  "completed_at_utc": null
 }
 ```
 
@@ -141,8 +165,8 @@ result 由 G-048 的新策略决定。
 - `failure` 为 `null` 或 `{phase, type, safe_message, retryable}`，不得回显密钥、原始上游正文或异常对象；
 - accepted attempt 的 usage/cost 信息即使不完整也要保存可确认部分；`actual_cost` 未知时为 `null`，
   不得伪装成 0；
-- `timing` 的 UTC 时间和单调时钟 duration 是审计观察值，允许为 `null`，不参与 result identity 或 replay
-  checksum；
+- P9a 的 `started_at_utc`/`completed_at_utc` 是可空审计值，不参与 result identity 或 replay checksum；
+  wall-clock 只进入独立 ledger；
 - transport retry 若再次被接受，必须使用新的 `attempt_id`、增加 `oracle_calls`，并与同一 request 的
   attempt history 关联。
 
@@ -151,23 +175,31 @@ result 由 G-048 的新策略决定。
 ```json
 {
   "schema_version": "ebbo-observation-v1",
-  "observation_id": "sha256:...",
-  "run_id": "sha256:...",
-  "request_id": "sha256:...",
-  "attempt_id": "sha256:...",
-  "candidate_id": "sha256:...",
-  "candidate": {},
+  "observation_id": "observation-<64 hex>",
+  "run_id": "run-<64 hex>",
+  "request_id": "request-<64 hex>",
+  "attempt_id": "attempt-<64 hex>",
+  "result_id": "result-<64 hex>",
+  "candidate_id": "candidate-<64 hex>",
+  "candidate": {"x": 0},
   "status": "succeeded",
   "objective": 0.0,
-  "constraints": {"constraint-0": -1.0},
-  "feasible": true,
-  "actual_cost": {"amount": 1.0, "unit": "oracle-unit"},
+  "constraints": null,
+  "feasible": null,
+  "failure": null,
+  "actual_cost": {
+    "amount": 1.0,
+    "unit": "mock-evaluation-unit",
+    "source": "ebbo-mock-fixed-cost-v1"
+  },
   "noise": {"kind": "none"},
   "logical_evaluation_index": 0,
   "completion_sequence": 0,
   "eligible_for_objective_surrogate": true,
-  "source_result_hash": "sha256:...",
-  "observed_at_utc": "2026-01-01T00:00:01Z"
+  "source_result_hash": "result-<64 hex>",
+  "seed_lineage": {},
+  "oracle_metadata": {},
+  "observed_at_utc": null
 }
 ```
 
@@ -226,16 +258,18 @@ P9a 需要测试每条规则。P9c 才实现并发 reconciliation、取消和 la
 
 ### 3.3 稳定 ID、seed 和 replay
 
-建议的稳定派生关系如下；P9a 必须冻结 canonical JSON 细节和 domain separator：
+P9a 已冻结的稳定派生关系如下；全部使用 `roco-ebbo-canonical-json-v1` domain envelope：
 
 ```text
-run_id = H(run-contract-version, problem/version, config hash, root_seed, implementation git SHA)
-candidate_id = H(search-space-contract, canonical candidate, proposal provenance)
-pool_entry_id = H(run_id, pool generation index, candidate_id, acquisition evidence)
-request_id = H(run_id, logical evaluation index, candidate_id, replicate index, oracle contract)
-attempt_id = H(request_id, attempt index)
-observation_id = H(request_id, attempt_id, canonical semantic terminal result excluding timing)
-derived_seed = H(seed-derivation-version, root_seed, component label, stable logical inputs)
+run_id = H(run-contract-version, complete strict config snapshot)
+candidate_id = H(search-space-contract, canonical candidate)
+candidate_pool_id = H(sorted unique entries, proposal/duplicate counts)
+reservation_id = H(run_id, logical evaluation index, candidate_id, reservation)
+request_id = H(all semantic request fields excluding created_at_utc)
+attempt_id = H(adapter version, request_id, attempt index)
+result_id = H(canonical semantic terminal result excluding timestamps)
+observation_id = H(request/result fact excluding completion_sequence and observed_at_utc)
+derived_seed = H(root_seed, ordered component labels and stable logical inputs), truncated to 63 bits
 ```
 
 可重放字段包括 contracts/config hashes、候选与 pool、request/result/observation、logical indexes、事件顺序、
@@ -297,9 +331,18 @@ fit seed、数值状态、失败/降级和 snapshot hash。fit 失败必须结�
 不能静默更换模型。
 
 acquisition artifact 至少记录 contract/version、posterior snapshot、pending snapshot、约束/成本处理、
-随机 seed、raw score、方向、tie-break 和候选生成过程。EI、UCB 和 Thompson sampling 都只是未来候选；
-当前不选择默认 acquisition。具体 surrogate、acquisition 参数、candidate-pool 大小/优化器和第三方依赖
-由 G-043/G-044 保持开放。
+随机 seed、raw score、方向、tie-break 和候选生成过程。P9a 已选择透明的工程子集：
+
+- `ebbo-nearest-observation-surrogate-v1`：mean 为一维整数域内距离最近的成功 Observation 目标值，
+  uncertainty 为距离除以域直径；距离并列按 observation ID，cold start 使用配置化 finite prior mean；
+- `ebbo-lower-confidence-bound-v1`：minimization score 为 `mean - beta * uncertainty`；
+- 候选先按 `derive_seed(root_seed, "candidate-order", iteration, candidate_id)` 排序取有限 pool，再按
+  acquisition score 升序、完整 candidate ID 升序决定调度顺序；
+- Mock smoke 固定 `prior_mean=10.0`、`beta=2.0`、pool size `4`，不使用第三方库。
+
+该 surrogate 不提供概率 posterior、校准或拟合；“posterior”工件仅是成功样本的确定性共享快照。
+EI、论文意义的 UCB、Thompson sampling、GP/神经 surrogate 和其他 pool optimizer 仍是未来候选，
+不得将 P9a LCB 写成已验证 BO 方法或性能结论。G-043/G-044 的 P9a 工程子项已关闭，未来比较仍开放。
 
 candidate pool 必须有限且不可变，概念字段至少包括：
 
@@ -383,39 +426,42 @@ Observation 中更新 best；“尚无可行点”的表示必须预注册。跨
 
 ## 8. 工件和验收设计
 
-未来每个 run 至少产生：
+P9a Mock smoke 当前产生：
 
 ```text
 manifest.json
-events.jsonl
-oracle_requests.jsonl
-oracle_results.jsonl
+audit.jsonl
+requests.jsonl
+results.jsonl
 observations.jsonl
 ledger.json
-posterior_index.jsonl
+posterior.json
 candidate_pools.jsonl
-role_decisions.jsonl          # P9b 起；P9a 可不存在
-replay_report.json
-summary.json                  # 事实摘要，不自动包含统计结论
+replay.json
+summary.json
 ```
 
-写入采用 append-only/immutable segment 和 commit-last 原则。工件必须包含所有 contract/version/hash、git
-SHA、root/derived seeds、预算、失败、pending reconciliation 和非时间 replay checksum。敏感 endpoint、
-credential、raw secret 或未脱敏上游正文不得进入工件。
+`audit.jsonl` 与 `observations.jsonl` 逐记录 append，重开时严格重读 schema、ID 和连续 sequence；snapshot
+记录两条流的 SHA-256。P9a 没有 crash reconciliation、commit marker、async pending 或 resume，这些属于
+P9c。其余文件在新 output directory 内一次性写入。工件包含 contract/version、root/derived seeds、预算、
+失败和非时间 replay checksum；敏感 endpoint、credential、raw secret 或未脱敏上游正文不得进入工件。
 
-P9a 最低测试矩阵：合法成功、约束成功/不可行（若首版启用约束）、发送前预算拒绝、accepted 后失败、
-timeout、接受前取消、重复请求/候选、非法/非有限 result、实际成本超预计、稳定 ID/seed、串行 replay、
-坏 hash/半写恢复，以及 Stage 2--5 旧 smoke/ledger 不变。P9b 增加所有角色越权、未知 pool ID、critic/
-integrator 失败及消融降级。P9c 增加超额 reservation 防护、乱序完成、取消竞态、unknown pending 恢复、
-late result 和 failure-aware 调度。
+P9a 已测试合法成功、发送前预算拒绝、accepted 后失败/timeout、接受前取消、重复候选、空 pool、非法/
+非有限 result、实际成本超 ceiling、未知成本、稳定 ID/seed、append/reopen/snapshot、串行 replay、有限/
+immutable/deduplicated pool、tie-break 和 scheduler-only dispatch。P9a 没启用约束，因此没有虚构约束成功
+测试。Stage 2--5 旧 smoke/ledger 作为回归不变量。P9b 增加所有角色越权、未知 pool ID、critic/integrator
+失败及消融降级。P9c 增加 commit-last/crash recovery、超额 reservation 防护、乱序完成、取消竞态、
+unknown pending 恢复、late result 和 failure-aware 调度。
 
 ## 9. 分阶段实施边界
 
 ### P9a：串行最小 baseline
 
-实现 deterministic Mock expensive-oracle、`EvaluationStatus`/`OracleRequest`/`OracleResult`/
-`Observation`、独立 ledger/store、有限 candidate pool、一个经显式决策的最小 surrogate/acquisition 和
-`max_concurrency=1` scheduler。不得接角色控制、真实网络、真实数据、异步 worker 或性能声明。
+**已在当前工作树实现并离线验证，尚未提交/发布。** 包括 deterministic Mock expensive-oracle、
+`EvaluationStatus`/`OracleRequest`/`OracleResult`/`Observation`、独立 ledger/store、有限 candidate pool、
+第 5 节的 surrogate/LCB 和 `max_concurrency=1` scheduler。Mock domain 为整数 `[-5,5]`，objective 为
+`(x-2)^2+1`，无约束、无噪声，固定成本 `1 mock-evaluation-unit`。不得接角色控制、真实网络、真实数据、
+异步 worker 或性能声明。
 
 ### P9b：受限角色控制
 
@@ -433,9 +479,13 @@ result、reconciliation 和 crash recovery。所有策略必须先关闭 G-047--
 只有用户逐项明确授权 benchmark/source/license、真实 provider/oracle、凭据处理方式、硬预算、统计
 计划和结论范围后才可开始。P10 不由 Stage 6 设计或任何 Mock 测试自动授权。
 
-## 10. 仍开放且不得暗定的内容
+## 10. 已关闭的 P9a 子项与仍开放内容
 
-G-042--G-051 保持以下选择开放：旧/新 ledger 的代码边界、surrogate、acquisition/pool optimizer、
-benchmark/reference、噪声/replication、约束/失败模型、成本模型、async/pending/concurrency/recovery 和
-统计重复数/target/regret 处理。参数表中的 `unset` 是有意的设计状态，不是缺省值。关闭任一 gap 时必须
-给出版本化 contract、选择依据、负路径测试和对公平性/预算的影响。
+G-042 已由独立 ledger/canonical JSON/ID/seed 代码和旧回归关闭。G-043--G-049 只关闭 P9a 所需子项：
+deterministic nearest-observation surrogate、LCB/pool/tie-break、Mock function/domain、no-noise/no-replicate、
+失败事实且 constraints disabled、serial scheduler，以及固定 Mock cost unit/unknown-overrun 审计。
+
+以下仍开放且不得暗定：真实/通用 surrogate 与 acquisition 比较，外部 benchmark/reference，真实噪声和
+replication，约束与 failure-aware 模型，async pending/concurrency/recovery/late result，真实成本与
+cost-aware acquisition（G-043--G-049 的后续子项）；全部指标/target/重复数/统计问题 G-050；四角色和
+可选 memory G-051。参数表中的 `unset` 是有意状态，不是库缺省值。

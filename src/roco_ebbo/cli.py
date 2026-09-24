@@ -14,6 +14,7 @@ from typing import Any
 
 from roco_ebbo import __version__
 from roco_ebbo.core import RunManifest
+from roco_ebbo.ebbo import load_ebbo_smoke_settings, run_ebbo_smoke
 from roco_ebbo.experiments import (
     execute_mkp_experiment,
     execute_tsp_experiment,
@@ -39,6 +40,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("runs"),
         type=Path,
         help="ignored output root for logs and manifests (default: runs)",
+    )
+    ebbo_smoke = subparsers.add_parser(
+        "ebbo-smoke",
+        help="run the offline deterministic Stage 6 P9a Mock expensive-oracle baseline",
+    )
+    ebbo_smoke.add_argument(
+        "--config", required=True, type=Path, help="path to the strict EBBO smoke YAML config"
+    )
+    ebbo_smoke.add_argument(
+        "--output-dir",
+        required=True,
+        type=Path,
+        help="new directory for append-only audit, observations, and replay artifacts",
     )
     experiment = subparsers.add_parser(
         "tsp-dry-run",
@@ -84,10 +98,13 @@ def main() -> None:
         print(f"roco-ebbo={__version__}")
         print(f"python={sys.version.split()[0]}")
         print(f"platform={platform.platform()}")
-        print("status=stage5-provider-adapter-offline; default_provider=mock; network=unused")
+        print("status=stage6-p9a-ebbo-mock-offline; default_provider=mock; network=unused")
         return
     if args.command == "smoke":
         _run_smoke_command(args.config, args.runs_dir)
+        return
+    if args.command == "ebbo-smoke":
+        _run_ebbo_smoke_command(args.config, args.output_dir)
         return
     if args.command == "tsp-dry-run":
         _run_tsp_dry_run_command(args.config, args.output_dir, args.dataset_manifest)
@@ -211,6 +228,24 @@ def _run_smoke_command(config_path: Path, runs_dir: Path) -> None:
     if smoke_run.result.memory_traces:
         print(f"memory_runtime_trace={memory_trace_path}")
         print(f"memory_root={run_directory / 'memory'}")
+
+
+def _run_ebbo_smoke_command(config_path: Path, output_dir: Path) -> None:
+    settings = load_ebbo_smoke_settings(config_path)
+    run = run_ebbo_smoke(settings, output_dir=output_dir)
+    print(f"run_id={run.run_id}")
+    print(f"oracle_calls={run.ledger.oracle_calls}")
+    print(f"evaluations_succeeded={run.ledger.evaluations_succeeded}")
+    print(f"evaluations_failed={run.ledger.evaluations_failed}")
+    print(f"candidate_proposals={run.ledger.candidate_proposals}")
+    print(f"known_cost={run.ledger.known_cost:g}")
+    print(f"cost_unit={run.ledger.cost_unit}")
+    print("llm_calls=0")
+    print("tokens=0")
+    print("financial_cost=0")
+    print("network=unused")
+    print(f"replay_checksum={run.replay_checksum}")
+    print(f"output_dir={output_dir}")
 
 
 def _run_tsp_dry_run_command(

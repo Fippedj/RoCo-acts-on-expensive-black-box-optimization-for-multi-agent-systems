@@ -1,0 +1,31 @@
+# P9a deterministic offline control-flow smoke; not a benchmark or performance result.
+protocol:
+  schema_version: ebbo-mock-smoke-config-v1
+  scope: engineering-mock-only
+
+run:
+  root_seed: 9061
+  iterations: 5
+  budgets:
+    max_oracle_calls: 5
+    max_candidate_proposals: 20
+    max_cost: 5.0
+    cost_unit: mock-evaluation-unit
+
+search_space:
+  version: ebbo-mock-integer-space-v1
+  lower: -5
+  upper: 5
+
+baseline:
+  surrogate: ebbo-nearest-observation-surrogate-v1
+  acquisition: ebbo-lower-confidence-bound-v1
+  prior_mean: 10.0
+  beta: 2.0
+  pool_size: 4
+  max_concurrency: 1
+
+oracle:
+  adapter: ebbo-mock-expensive-oracle-v1
+  network: unused
+  financial_cost: 0.0

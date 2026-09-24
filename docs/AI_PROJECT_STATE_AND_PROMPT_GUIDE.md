@@ -39,7 +39,7 @@ snapshot:
   stage5_baseline: 59c335757b65935b29b7141ef6f0e6d338eb3603
   current_head: "run: git rev-parse HEAD"
   current_head_subject: "run: git log -1 --format=%s"
-  upstream: "none at P8-start query; always re-run git branch -vv"
+  upstream: "origin/stage/06-ebbo-design at P9a-start query; always re-run git branch -vv"
   upstream_distance: "run: git rev-list --left-right --count HEAD...@{upstream} only when an upstream exists"
   stage3_implementation_commit: 2ce66a4f66c0e446fa8b44a729783074cc13064a
   stage3_publication_commit: f6f3e1dd19427704971d443f28e894ce57af3676
@@ -67,7 +67,9 @@ snapshot:
   stage5_p7a_status: "committed locally at P7b-0 start with no upstream; query publication status with live Git; documentation only"
   stage5_complete: false
   stage6_baseline: 08712c5a065818889b1b11b315dadafee9437d06
-  stage6_p8_design: "ADR-0008 and paper_spec/ebbo_design.md; design complete in working tree; implementation not started"
+  stage6_p8_design_commit: 6efec474d091bebeadec8574d1c32aa1f8c22f2e
+  stage6_p8_status: "published"
+  stage6_p9a_status: "implemented and locally verified in working tree; uncommitted and unpublished"
   stage6_runtime_implemented: false
   stage6_real_oracle_authorized: false
   agents_md_present: false
@@ -244,8 +246,8 @@ P8 所在的当前 Stage 6 design worktree：
 ```
 
 该 worktree 的分支是 `stage/06-ebbo-design`，P8 基线是已发布的
-`08712c5a065818889b1b11b315dadafee9437d06`；P8 开始时没有 upstream。设计文件处于工作树时，
-不得把它描述成已提交或已发布。
+`08712c5a065818889b1b11b315dadafee9437d06`，P8 设计由 `6efec47` 发布。P9a 开始时分支跟踪
+`origin/stage/06-ebbo-design` 且 ahead/behind 为 0/0；当前工作树的 P9a 修改尚未提交或发布。
 
 `stage/04-reflection-memory` 已通过 `59c3357` 发布完整 Stage 4 V1。P6 本地基线为 P5
 状态提交 `7969b0d`，实现/状态提交为 `a94ce0c`/`7302ddd`；P7a 是已设计的文档子任务，
@@ -325,13 +327,14 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 | Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
 | Stage 4：反思与跨代记忆 | 已由 `59c3357` 发布 | ADR-0004、事实/恢复底座、opt-in 摘要/检索/截断/mutation、显式 resume 与离线消融 | 冻结 V1 离线 Mock 实现 100% |
 | Stage 5：论文实验对齐 | P5/P6/P7a 有本地提交；P7b-0/P7b 与 upstream 状态须实时查询 | P6 合成 TSP Mock dry-run；P7a 证据协议；P7b 为 FSU MKP 提供 `protocol-only` E3 离线 Mock 协议 | P5/P6/P7a 和该 MKP E3 子范围完成；真实实验/论文对齐仍未完成 |
-| Stage 6：多智能体 EBBO | P8 设计工作树完成；提交/发布状态须实时查询 | ADR-0008、JSON-safe 契约、独立账本、模块/角色边界、评测与 P9/P10 闸门；无运行时代码 | 设计 100%；实现 0% |
+| Stage 6：多智能体 EBBO | P8 由 `6efec47` 发布；P9a 工作树已验证、未提交/发布 | P8 设计；P9a strict contracts、独立 ledger/store、Mock oracle、finite pool、serial nearest-observation+LCB baseline | 设计 100%；P9a 100%；P9b/P9c/P10 0% |
 
 以“六阶段是否具有可运行实现”粗略计数，仍只完成前四阶段的既定 V1 范围，约为 4/6。
 P5 完成 provider 协议与离线安全底座，P6 完成 TSP-only 合成协议和 Mock/fake dry-run，P7a
 完成多 COP/统计证据设计，P7b-0/P7b 将获授权的 FSU MKP snapshot 从 E2 冻结推进到窄范围 E3
 parser/evaluator/Mock dry-run。它们都不是论文数值复现、真实模型实验或统计结果；Stage 6 的 P8
-设计已经完成，但不增加“具有可运行实现”的阶段数，Stage 5–6 的真实实验与方法研究仍明显更重。
+设计和 P9a 串行工程 Mock 已完成，但 P9a 只验证接口/账本/重放，Stage 5–6 的真实实验与多智能体
+方法研究仍明显更重。
 
 另一个必须说明的口径：相对于早期 roadmap 中更宽的 Stage 3 清单，当前约完成 70%–80%。roadmap 还提到 prompt 外置为 Jinja/YAML、上下文截断、修复重试、`no-critic`/`no-integrator` 消融和真实小预算运行；这些不在最近一次明确 Stage 3 任务范围内，且真实 API 被明确禁止，因此不是当前验收失败，而是后续候选任务。
 
@@ -513,7 +516,7 @@ status / error_type / error_message
 - 这只关闭 FSU MKP 的 G-038/G-039/G-040 E3 子项。G-041、E4/真实 provider、reference 最优性、
   其他 COP 与论文数值复现仍开放；实现和发布状态一律实时 Git 查询。
 
-### 6.11 Stage 6 P8：EBBO 可执行设计（设计完成；实现未开始）
+### 6.11 Stage 6 P8/P9a：设计已发布；串行工程 Mock 已验证、未提交/发布
 
 - ADR-0008 区分昂贵 oracle black-box 与论文 prompt visibility，并冻结单目标 minimize、可选
   `g_i(x)<=0` 约束、失败/超时/噪声/成本和预算边界。
@@ -527,11 +530,20 @@ status / error_type / error_message
   从统计 candidate pool 选择，scheduler 是唯一 oracle dispatch capability。
 - 评测设计冻结同 surrogate/同 oracle budget 的单 agent acquisition baseline、多 agent 对照、simple
   regret/cost/failure/time 指标和消融矩阵，但 EI/UCB/TS、surrogate、benchmark 和统计值都仍未选择。
-- G-042--G-051 保存 ledger/ID、surrogate、acquisition、benchmark、噪声、约束/失败、异步、成本、
-  统计和角色/memory 的未决项。没有 E4 工件不得作 EBBO 性能或优越性结论。
+- P9a 在独立 `src/roco_ebbo/ebbo/` 中实现 strict JSON、canonical SHA-256 ID/63-bit seed、
+  `ebbo-ledger-v1`、append-only audit/Observation store、工程 Mock oracle、finite immutable pool 和
+  scheduler-only `max_concurrency=1` dispatch；旧 `BudgetLedger` 未修改。
+- 工程 surrogate 为 nearest successful Observation mean + normalized integer distance uncertainty；
+  acquisition 为 minimization LCB `mean-beta*uncertainty`，score 后按完整 candidate ID tie-break。它们
+  stdlib-only、确定性且透明，但不是论文事实、概率校准或性能已验证 BO 方法。
+- 固定 smoke 是 `x in [-5,5]`、`(x-2)^2+1`、constraints off、noise none、root seed 9061、beta 2、
+  pool 4。精确账本为 5 calls、5 success/0 failure、20 proposals、5 mock-evaluation-unit、0 LLM/
+  tokens/财务成本、`network=unused`。
+- G-042 已关闭；G-043--G-049 只关闭 P9a 工程子项。G-048 async/recovery、G-049 真实成本感知、
+  G-050 统计和 G-051 角色/memory 仍开放。没有 E4 工件不得作 EBBO 性能或优越性结论。
 
-该节描述的是文档设计，不是已实现架构。仓库仍没有 GP/神经 surrogate、BO/acquisition、oracle、
-async worker、真实 EBBO benchmark、网络调用或付费实验。
+仓库仍没有 GP/神经 surrogate、概率 BO、四角色 EBBO 控制、async worker、真实 EBBO benchmark、
+真实昂贵 oracle、网络调用或付费实验。
 
 ## 7. 当前审计结论
 
@@ -614,15 +626,14 @@ snapshot 的 G-037–G-040 子项；G-041 和任何 E4/正式实验仍未关闭�
 
 ### Stage 6
 
-P8 已完成昂贵 oracle、Observation/ledger、surrogate/acquisition/candidate-pool、受限角色、
-pending/异步和后续评测的文档设计。以下运行时能力仍全部未实现：
+P8 已完成文档设计；P9a 已完成 deterministic Mock oracle、strict contracts、独立 ledger/store、
+finite pool、serial scheduler 和 nearest-observation/LCB 工程 baseline。以下能力仍未实现：
 
-- deterministic Mock expensive-oracle 和任何真实昂贵 oracle adapter；
-- EBBO `OracleRequest`/`OracleResult`/`Observation`/ledger/store 代码；
-- surrogate、acquisition、posterior、有限 candidate pool 和不确定性校准；
+- 任何真实昂贵 oracle adapter、真实 benchmark 或网络 transport；
+- GP/神经/概率 surrogate、校准、EI/TS 和 acquisition 比较；
 - global explorer、local exploiter、model critic、resource integrator 的 EBBO 控制层；
 - 异步 worker、pending evaluation、reservation、取消、成本/失败感知调度与恢复；
-- EBBO benchmark、baseline、regret/target/statistical experiment 和 E4 工件。
+- memory 接入、regret/target/statistical experiment 和 E4 工件。
 
 ## 9. 推荐后续任务顺序
 
@@ -639,8 +650,8 @@ P0  Stage 3 最终审计/小范围加固（已完成）
   -> P7b-0 获授权 FSU MKP 来源/许可/inventory/checksum 冻结（E2；实现/发布状态实时查询）
   -> P7b FSU MKP parser/evaluator/protocol-only split 与 Mock/fake dry-run（E3 已验证；提交/发布状态实时查询）
   -> 后续 Stage 5 实施（须另行授权具体 COP/E4 数据、provider 与预算；G-041 仍开放）
-  -> P8  Stage 6 EBBO 设计规格（工作树已完成；实现未开始）
-  -> P9a deterministic Mock expensive-oracle + Observation/ledger + 串行最小 BO baseline
+  -> P8  Stage 6 EBBO 设计规格（`6efec47` 已发布）
+  -> P9a deterministic Mock expensive-oracle + Observation/ledger + 串行最小 baseline（工作树已验证；未提交/发布）
   -> P9b 受限四角色控制层 + finite candidate-pool-only 调度
   -> P9c async/pending/failure-aware/cost-aware 调度、取消与恢复
   -> P10 仅在明确授权 benchmark/source/license、真实 provider/oracle 和硬预算后开展实验
@@ -811,7 +822,7 @@ generated candidates 或 valid evaluations。
 给出最小基线（同一待选择 surrogate 下的 EI/UCB/TS 候选）、多 agent 对照、固定 oracle 预算、公平指标、消融矩阵、模块接口、ADR 和分阶段实现提示词。不要声称 RoCo 论文已经证明 EBBO 有效，不实现真实实验或调用外部服务。
 ```
 
-### 11.8 Prompt H：P9a 串行 Mock EBBO 底座（下一实现任务）
+### 11.8 Prompt H：P9a 串行 Mock EBBO 底座（已完成，保留作实现审计模板）
 
 ```text
 以 ADR-0008、paper_spec/ebbo_design.md、parameter_registry 和 G-042--G-050 为唯一 Stage 6
@@ -824,6 +835,19 @@ max_concurrency=1 的单 agent BO baseline。
 即计 oracle_calls/cost；失败、timeout、取消、duplicate、非法结果和 cost overrun 都需结构化负路径。
 不接四角色控制、memory、异步 worker、真实 benchmark/provider/API/key/network 或付费实验，不声称
 性能。不得把 EI/UCB/TS、GP 或第三方库当作已决定项；先用 ADR/gap 关闭证据和依赖边界。
+```
+
+### 11.9 Prompt I：P9b 受限角色控制（下一实现任务）
+
+```text
+以已验证的 P9a contracts/ledger/store/surrogate/acquisition/candidate pool/serial scheduler 为不可绕过
+底座，实现 global explorer、local exploiter、model critic、resource integrator 的 JSON-safe 控制层。
+角色只能解释已提交 Observation/posterior、提出区域/策略偏好、审查不确定性和引用 pool entry ID；
+Integrator 不得构造池外候选或直接调用 oracle，scheduler 仍是唯一 dispatch capability。
+
+保持相同 surrogate/acquisition、Mock oracle、root seed 和 oracle-call hard limit，增加完整角色、无角色、
+无 critic、无 integrator 的控制流/权限测试。默认不接 memory，不实现 async/pending worker，不接真实
+benchmark/provider/API/key/network，不运行性能实验，不修改 Stage 2--5 BudgetLedger 或 smoke。
 ```
 
 ## 12. 为每个新任务设计提示词时的检查表
@@ -843,18 +867,15 @@ max_concurrency=1 的单 agent BO baseline。
 
 ## 13. 当前最推荐的下一条提示词
 
-P8 已在发布基线 `08712c5a065818889b1b11b315dadafee9437d06` 上完成 Stage 6 文档设计：
+P8 已在发布基线 `08712c5a065818889b1b11b315dadafee9437d06` 上完成并由 `6efec47` 发布 Stage 6 文档设计：
 ADR-0008 和 `paper_spec/ebbo_design.md` 冻结 expensive-oracle 与 prompt black-box 的区别、JSON-safe
 request/result/observation/status、独立 EBBO ledger、accepted-attempt 结算、稳定 ID/seed、模块数据流、
 共享 posterior、有限 candidate pool、角色权限、pending/异步未来语义、评测/消融与 P9/P10 闸门。
-当前分支没有 upstream；HEAD、status、提交和发布状态必须实时查询。
+P9a 已在当前工作树实现并离线验证，尚未提交/发布；HEAD、status、upstream 和 publication 必须实时查询。
 
-当前最推荐的下一任务是 **P9a**，使用 11.8 Prompt H：先以 G-042--G-050 关闭最小实现所需选择，
-再实现 deterministic Mock expensive-oracle、Observation/ledger/store 和串行单 agent baseline。不得
-修改 Stage 2--5 `BudgetLedger` 或既有 smoke，不接角色、memory、异步、真实 benchmark/provider/
-network/key 或付费实验。P9b 仅在 P9a 通过后实现受限 candidate-pool 角色控制，P9c 再处理 pending/
-failure-aware 异步恢复；P10 必须重新取得用户对 benchmark、来源、许可证、真实 oracle/provider、
-硬预算和统计计划的明确授权。
+当前最推荐的下一实现任务是 **P9b**，使用 11.9 Prompt I：在 P9a 有限 candidate pool 与唯一 scheduler
+dispatch capability 上增加受限四角色控制。P9c 之后才处理 pending/failure-aware 异步恢复；P10 必须
+重新取得用户对 benchmark、来源、许可证、真实 oracle/provider、硬预算和统计计划的明确授权。
 
-Stage 6 目前的准确状态只能表述为“设计完成、实现未开始”。没有 E4 工件，不得作性能、显著性、
-泛化、优越性或论文复现结论。
+Stage 6 目前的准确状态是“P8 设计已发布；P9a 工程 Mock 已验证但未提交/发布；P9b/P9c/P10 未实现”。
+没有 E4 工件，不得作性能、显著性、泛化、优越性或论文复现结论。
