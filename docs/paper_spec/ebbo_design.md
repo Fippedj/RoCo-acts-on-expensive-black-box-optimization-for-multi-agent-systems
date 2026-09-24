@@ -2,8 +2,8 @@
 
 ## 0. 状态、范围与术语
 
-本文冻结 Stage 6 EBBO 的概念接口和后续验收边界。状态是：**P8 设计已发布；P9a 串行工程 Mock
-已在工作树离线验证，尚未提交/发布；P9b/P9c/P10 未开始**。本文不是 RoCo 论文事实的延伸，不表示
+本文冻结 Stage 6 EBBO 的概念接口和后续验收边界。状态是：**P8 设计和 P9a 串行工程 Mock 已发布；P9b 受限角色 Mock 已在工作树离线验证，
+尚未提交/发布；P9c/P10 未开始**。本文不是 RoCo 论文事实的延伸，不表示
 GP、概率校准、异步 worker、真实 benchmark、真实昂贵 oracle 或性能实验已经存在。ADR-0008 记录
 决策理由；本文件同时记录 P9a 已冻结的工程子集。
 
@@ -380,6 +380,42 @@ Stage 3 可复用 role/provider/audit 设计原则，但不能直接复用“生
 Stage 4 memory 若未来接入，只能总结已提交 Observation/decision 事实并带来源 ID；当前 memory schema、
 K=5 检索和三角色 mutation 不适用于 EBBO。P9b 默认无跨 run memory。
 
+### 6.1 P9b 具体离线角色契约
+
+`ebbo-role-request-v1` 固定字段为 `request_id`、`role`、`pool_id`、`iteration`、`role_seed`、
+`entries[]`、`observation_ids[]`、`posterior_id`、`guidance_ids[]`、`vetoed_ids[]`、
+`remaining_oracle_calls` 和 `schema_version`。每个 entry 只暴露 `entry_id`、`region_id`、
+`strategy_id`、`predicted_mean`、`uncertainty`、`acquisition_score`；Mock region 只能是
+negative/zero/positive，strategy 只能是 P9a LCB ID。
+不暴露候选原始 `x`。posterior-view ID 是已提交 observation ID 列表的稳定 hash，不声称存在
+概率 posterior；同一轮所有角色读取同一 observation/pool view。请求 ID 与 role seed 使用 P9a 的
+canonical SHA-256/label 派生，时间不参与。
+
+`ebbo-role-response-v1` 固定身份字段与 role-specific payload：Explorer/Exploiter 仅给一个池内
+entry/region/strategy ID 和有限非负权重；Critic 对每个池 entry 给四类 low/medium/high 风险及
+boolean veto；Integrator 给无重复池内 ID 排序及首位选择。严格 JSON 拒绝重复 key、非有限值、
+未知字段、未知 pool/entry、重复选择、越权 candidate/score/Observation/ledger 字段与身份不匹配。
+角色没有 oracle permit；只有 `RestrictedRoleScheduler` 可把已验证的既有 entry 交给未修改的 P9a
+`SerialScheduler.dispatch`。调度门复核 pool hash/排序、membership、duplicate、Mock none-v1
+constraint/domain 和 oracle/cost 预算；无 P9c pending/并发能力。
+
+`ebbo-role-audit-v1` 标记每个 request、response、review、decision、failure/fallback 和调度门事件，
+写入 P9a append-only `AuditEvent` 流。Critic `veto_mode=advisory` 只报告；`hard` 过滤有效
+veto 的 entry，若全部过滤则终止而不 dispatch。任何非法角色输出、provider error/timeout、角色
+call/token ceiling 不足均按结构化原因审计并退回 P9a score/ID acquisition 顺序；已生效的 hard
+veto 继续约束回退。无 Integrator 路径同样以该 acquisition 顺序选择。角色输出不能改写
+acquisition score、Observation、ledger 或 oracle request。
+
+provider 为显式注入的 `ebbo-deterministic-fake-role-provider-v1`，没有真实 LLM、HTTP、网络、
+凭据或费用。EBBO ledger 的 `llm_calls` 在这里只计 fake role invocation；input/output tokens 是
+UTF-8 字节长度除以四向上取整的合成计数，绝非 tokenizer/账单。角色调用预算与 oracle 预算分离，
+任何角色失败都不增加 oracle call。四路径 full/no_roles/no_critic/no_integrator 使用同一
+Mock oracle、域、root seed 9061、空初始状态、pool 规则、5-call ceiling；各自 5 oracle calls、
+5 success、20 proposals、5 Mock cost、0 财务成本，fake role calls 为 20/0/15/15，
+`network=unused`。no_roles 直接使用 P9a baseline，checksum 保持
+`7d4b4da802d2cd4e29742b74fa9e3866b4ab319a27d207e1ce4c8e79fac5da01`。
+这些只验证离线权限/账本/重放，不能用作 regret、性能或优越性结论。
+
 ## 7. 后续评测协议
 
 ### 7.1 baseline 与多 agent 对照
@@ -449,25 +485,26 @@ P9c。其余文件在新 output directory 内一次性写入。工件包含 cont
 P9a 已测试合法成功、发送前预算拒绝、accepted 后失败/timeout、接受前取消、重复候选、空 pool、非法/
 非有限 result、实际成本超 ceiling、未知成本、稳定 ID/seed、append/reopen/snapshot、串行 replay、有限/
 immutable/deduplicated pool、tie-break 和 scheduler-only dispatch。P9a 没启用约束，因此没有虚构约束成功
-测试。Stage 2--5 旧 smoke/ledger 作为回归不变量。P9b 增加所有角色越权、未知 pool ID、critic/integrator
-失败及消融降级。P9c 增加 commit-last/crash recovery、超额 reservation 防护、乱序完成、取消竞态、
+测试。Stage 2--5 旧 smoke/ledger 作为回归不变量。P9b 已增加角色越权、未知 pool ID、非法 JSON/字段、重复选择、provider error/timeout、
+角色预算、hard/advisory veto、调度复核、四路径消融及重放测试。P9c 增加 commit-last/crash recovery、超额 reservation 防护、乱序完成、取消竞态、
 unknown pending 恢复、late result 和 failure-aware 调度。
 
 ## 9. 分阶段实施边界
 
 ### P9a：串行最小 baseline
 
-**已在当前工作树实现并离线验证，尚未提交/发布。** 包括 deterministic Mock expensive-oracle、
+**已由 `4189f65970feab0a17299445641916c6245de4a8` 发布。** 包括 deterministic Mock expensive-oracle、
 `EvaluationStatus`/`OracleRequest`/`OracleResult`/`Observation`、独立 ledger/store、有限 candidate pool、
 第 5 节的 surrogate/LCB 和 `max_concurrency=1` scheduler。Mock domain 为整数 `[-5,5]`，objective 为
-`(x-2)^2+1`，无约束、无噪声，固定成本 `1 mock-evaluation-unit`。不得接角色控制、真实网络、真实数据、
+`(x-2)^2+1`，无约束、无噪声，固定成本 `1 mock-evaluation-unit`。P9a 路径不接角色控制、真实网络、真实数据、
 异步 worker 或性能声明。
 
 ### P9b：受限角色控制
 
-实现 global explorer、local exploiter、model critic、resource integrator 的结构化控制层。Integrator
-只能引用 P9a candidate pool；scheduler 仍是唯一 dispatch capability。保持同 surrogate/acquisition 的
-单 agent baseline 和角色消融入口。不得调用真实 oracle。
+**已在当前工作树离线验证，尚未提交/发布。** 实现 global explorer、local exploiter、
+model critic、resource integrator 的结构化控制层和 fake provider。Integrator 只能引用 P9a
+candidate pool；scheduler 仍是唯一 dispatch capability。保留同 surrogate/acquisition 的 no-role
+baseline 和四路径控制流消融。没有真实 LLM、oracle、benchmark 或性能实验。
 
 ### P9c：异步与失败恢复
 
@@ -479,7 +516,7 @@ result、reconciliation 和 crash recovery。所有策略必须先关闭 G-047--
 只有用户逐项明确授权 benchmark/source/license、真实 provider/oracle、凭据处理方式、硬预算、统计
 计划和结论范围后才可开始。P10 不由 Stage 6 设计或任何 Mock 测试自动授权。
 
-## 10. 已关闭的 P9a 子项与仍开放内容
+## 10. 已关闭的 P9a/P9b 子项与仍开放内容
 
 G-042 已由独立 ledger/canonical JSON/ID/seed 代码和旧回归关闭。G-043--G-049 只关闭 P9a 所需子项：
 deterministic nearest-observation surrogate、LCB/pool/tie-break、Mock function/domain、no-noise/no-replicate、
@@ -487,5 +524,7 @@ deterministic nearest-observation surrogate、LCB/pool/tie-break、Mock function
 
 以下仍开放且不得暗定：真实/通用 surrogate 与 acquisition 比较，外部 benchmark/reference，真实噪声和
 replication，约束与 failure-aware 模型，async pending/concurrency/recovery/late result，真实成本与
-cost-aware acquisition（G-043--G-049 的后续子项）；全部指标/target/重复数/统计问题 G-050；四角色和
-可选 memory G-051。参数表中的 `unset` 是有意状态，不是库缺省值。
+cost-aware acquisition（G-043--G-049 的后续子项）；全部指标/target/重复数/统计问题 G-050；
+可选 memory 与真实 provider G-051。P9b 已关闭 G-043 的角色共享只读 view、G-044 的池内受限选择和
+G-051 的角色 schema/权限/故障回退/四路径工程消融子项；真实 LLM、memory、异步与统计仍开放。
+参数表中的 `unset` 是有意状态，不是库缺省值。

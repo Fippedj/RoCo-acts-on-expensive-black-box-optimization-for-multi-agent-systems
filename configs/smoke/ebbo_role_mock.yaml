@@ -1,0 +1,8 @@
+# P9b offline control-flow matrix; not an EBBO benchmark or performance comparison.
+schema_version: ebbo-role-mock-smoke-config-v1
+baseline_config: ebbo_mock.yaml
+roles:
+  provider: ebbo-deterministic-fake-role-provider-v1
+  veto_mode: advisory
+  max_role_calls: 20
+  max_role_tokens: 50000

@@ -17,7 +17,7 @@ class EBBOBudgetExceeded(RuntimeError):
 
 @dataclass(slots=True)
 class EBBOLedger:
-    """P9a-only ledger; deliberately unrelated to the Stage 2--5 BudgetLedger."""
+    """P9a/P9b ledger; deliberately unrelated to the Stage 2--5 BudgetLedger."""
 
     max_oracle_calls: int | None
     max_candidate_proposals: int | None
@@ -31,6 +31,12 @@ class EBBOLedger:
     wall_time_seconds: float = 0.0
     failure_breakdown: dict[str, int] = field(default_factory=dict)
     unknown_cost_attempt_ids: list[str] = field(default_factory=list)
+    max_role_calls: int | None = None
+    max_role_tokens: int | None = None
+    role_calls: int = 0
+    role_input_tokens: int = 0
+    role_output_tokens: int = 0
+    _open_role_calls: int = field(default=0, repr=False)
     _reservations: dict[str, float | None] = field(default_factory=dict, repr=False)
     _accepted_attempts: dict[str, str] = field(default_factory=dict, repr=False)
     _settled_attempts: set[str] = field(default_factory=set, repr=False)
@@ -39,6 +45,8 @@ class EBBOLedger:
         for name, value in {
             "max_oracle_calls": self.max_oracle_calls,
             "max_candidate_proposals": self.max_candidate_proposals,
+            "max_role_calls": self.max_role_calls,
+            "max_role_tokens": self.max_role_tokens,
         }.items():
             if value is not None and (type(value) is not int or value < 0):
                 raise ValueError(f"{name} must be a non-negative integer or null")
@@ -61,11 +69,36 @@ class EBBOLedger:
 
     @property
     def llm_calls(self) -> int:
-        return 0
+        return self.role_calls
 
     @property
     def tokens(self) -> int:
-        return 0
+        return self.role_input_tokens + self.role_output_tokens
+
+    def can_accept_role_call(self, input_tokens: int) -> bool:
+        if type(input_tokens) is not int or input_tokens < 0:
+            raise ValueError("input_tokens must be a non-negative integer")
+        return (
+            self._open_role_calls == 0
+            and (self.max_role_calls is None or self.role_calls + 1 <= self.max_role_calls)
+            and (self.max_role_tokens is None or self.tokens + input_tokens <= self.max_role_tokens)
+        )
+
+    def accept_role_call(self, input_tokens: int) -> None:
+        """Count a fake role-provider invocation, separately from oracle attempts."""
+        if not self.can_accept_role_call(input_tokens):
+            raise EBBOBudgetExceeded("role call or token budget would be exceeded")
+        self.role_calls += 1
+        self.role_input_tokens += input_tokens
+        self._open_role_calls += 1
+
+    def settle_role_call(self, output_tokens: int) -> None:
+        if type(output_tokens) is not int or output_tokens < 0:
+            raise ValueError("output_tokens must be a non-negative integer")
+        if self._open_role_calls != 1:
+            raise ValueError("no unique accepted role call to settle")
+        self._open_role_calls -= 1
+        self.role_output_tokens += output_tokens
 
     @property
     def accounting_complete(self) -> bool:
@@ -85,6 +118,10 @@ class EBBOLedger:
             reached.append("cost")
         if self.unknown_cost_attempt_ids:
             reached.append("unknown_cost")
+        if self.max_role_calls is not None and self.role_calls >= self.max_role_calls:
+            reached.append("role_calls")
+        if self.max_role_tokens is not None and self.tokens >= self.max_role_tokens:
+            reached.append("role_tokens")
         return tuple(reached)
 
     @property
@@ -99,6 +136,8 @@ class EBBOLedger:
             exceeded.append("candidate_proposals")
         if self.max_cost is not None and self.known_cost > self.max_cost:
             exceeded.append("cost")
+        if self.max_role_tokens is not None and self.tokens > self.max_role_tokens:
+            exceeded.append("role_tokens")
         return tuple(exceeded)
 
     def record_candidate_proposal(self, count: int = 1) -> None:
@@ -205,8 +244,12 @@ class EBBOLedger:
                 "failure_breakdown": dict(sorted(self.failure_breakdown.items())),
             },
             "candidate_proposals": self.candidate_proposals,
-            "llm_calls": 0,
-            "tokens": {"input": 0, "output": 0, "total": 0},
+            "llm_calls": self.role_calls,
+            "tokens": {
+                "input": self.role_input_tokens,
+                "output": self.role_output_tokens,
+                "total": self.tokens,
+            },
             "cost": {
                 "known_total": self.known_cost,
                 "unit": self.cost_unit,
@@ -227,6 +270,12 @@ class EBBOLedger:
             "reached_limits": list(self.reached_limits),
             "exceeded_limits": list(self.exceeded_limits),
         }
+        limits = value["limits"]
+        assert isinstance(limits, dict)
+        if self.max_role_calls is not None:
+            limits["max_role_calls"] = self.max_role_calls
+        if self.max_role_tokens is not None:
+            limits["max_role_tokens"] = self.max_role_tokens
         require_json_safe(value)
         return value
 

@@ -65,8 +65,8 @@ config：P6 的 3 seeds 与 `24/120000/24/24/1 USD/120 s` 仍只适用于 ADR-00
 
 ## Stage 6 EBBO 设计参数
 
-本节登记 ADR-0008 与 `ebbo_design.md` 的设计参数。它们不是 RoCo 论文披露值。P9a 行标记的值已在
-当前工作树实现并离线验证，但尚未提交/发布；`unset` 表示后续任务仍须以 gap 关闭证据和版本化配置
+本节登记 ADR-0008 与 `ebbo_design.md` 的设计参数。它们不是 RoCo 论文披露值。P9a 行标记的值已由 `4189f65970feab0a17299445641916c6245de4a8` 发布；P9b 工程值在
+当前工作树离线验证，但尚未提交/发布；`unset` 表示后续任务仍须以 gap 关闭证据和版本化配置
 决定，调用方不得自行选择库默认值。
 
 | 参数名 | Stage 6 冻结值/候选 | 当前状态 | 适用与证据边界 |
@@ -85,7 +85,12 @@ config：P6 的 3 seeds 与 `24/120000/24/24/1 USD/120 s` 仍只适用于 ADR-00
 | `ebbo.constraints.contract` / `failure_model` | P9a `none-v1` / 失败事实只入 store、不入 surrogate；真实约束/model=`unset` | P9a 最小子项关闭 | 失败不得变成惩罚 objective；约束 BO/failure-aware 调度仍见 G-047 |
 | `ebbo.cost.model` / `cost_aware_acquisition` | P9a fixed `1 mock-evaluation-unit`，source `ebbo-mock-fixed-cost-v1` / `unset` | Mock accounting 已验证；cost-aware 开放 | 实际 overrun/unknown fail-closed 已测；真实成本与调度仍见 G-049 |
 | `ebbo.scheduler.max_concurrency` | P9a `1`；P9b 仍应为 `1`；P9c `unset` | P9a scheduler-only dispatch 已验证，异步开放 | preflight、accepted、pre-accept cancel、duplicate 已测；pending/recovery/late result 见 G-048 |
-| `ebbo.roles` | global explorer、local exploiter、model critic、resource integrator | 设计冻结；P9b 未实现 | Integrator 只引用有限 pool entry，scheduler 唯一 dispatch；见 G-051 |
+| `ebbo.roles` | global explorer、local exploiter、model critic、resource integrator | P9b 离线 Mock 已验证、未提交/发布 | Integrator 只引用有限 pool entry，scheduler 唯一 dispatch；见 G-051 |
+| `ebbo.roles.request_schema` / `response_schema` / `audit_schema` | `ebbo-role-request-v1` / `ebbo-role-response-v1` / `ebbo-role-audit-v1` | P9b 已验证 | 严格 JSON、完整 SHA-256 ID、池内 entry/region/strategy、四类 Critic risk、Integrator 唯一选择；角色没有 oracle permit |
+| `ebbo.roles.provider` / `token_accounting` | `ebbo-deterministic-fake-role-provider-v1` / UTF-8 bytes ÷ 4 向上取整 | P9b 工程 Mock 已验证 | 无真实 LLM/HTTP/key/network；`llm_calls` 仅计 fake invocation；tokens 不代表真实 tokenizer 或账单 |
+| `ebbo.roles.veto_mode` / `fallback` | smoke `advisory`；可选 `hard` / P9a acquisition score+ID 排序 | P9b 已验证 | hard 排除有效 veto；全部 veto 则不 dispatch；非法输出、provider error/timeout、角色预算耗尽均审计回退 |
+| `ebbo.roles.max_role_calls` / `max_role_tokens` | smoke `20` / `50000` synthetic tokens | P9b 已验证 | 角色预算与 5-call oracle ceiling 分离；accepted fake call/error 计数，不折算 oracle call |
+| `ebbo.roles.ablation_modes` | `full/no_roles/no_critic/no_integrator` | P9b 离线控制流已验证 | 同 Mock/search/root seed/初始状态/pool/5-call ceiling；每路径 5 oracle calls、20 proposals、5 Mock cost；fake role calls 20/0/15/15；非性能证据 |
 | `ebbo.evaluation.primary_metric` | simple regret（仅有可靠 reference 时） | 原则冻结，reference 未定 | cumulative regret、cost-to-target、failure/time 指标需预注册；见 G-050 |
 | `ebbo.statistics.seed_set` / `repetitions` / `target` | `unset` | P10 前决定 | 没有 E4 工件不得作性能、显著性、泛化或优越性结论；见 G-050 |
 

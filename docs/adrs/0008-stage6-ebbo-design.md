@@ -1,6 +1,6 @@
 # ADR-0008：Stage 6 多智能体昂贵黑盒优化设计
 
-- 状态：Accepted；P8 设计已由 `6efec47` 发布，P9a 已在工作树离线验证、尚未提交/发布
+- 状态：Accepted；P8 由 `6efec47` 发布，P9a 由 `4189f65970feab0a17299445641916c6245de4a8` 发布；P9b 工作树离线验证、未提交/发布
 - 日期：2026-09-22
 - 基线：`08712c5a065818889b1b11b315dadafee9437d06`
 - 上游：ADR-0001、ADR-0003、ADR-0004、ADR-0007、
@@ -30,8 +30,8 @@ oracle 是通过 `OracleRequest`/`OracleResult` 访问的昂贵评估边界。�
 本设计任务范围内。P9a 只能实现串行、确定性的 Mock expensive-oracle。
 
 JSON-safe 概念契约、字段约束和状态转换由 `docs/paper_spec/ebbo_design.md` 唯一定义。这里的“概念”
-表示运行时代码必须保持该语义。P9a 已实现严格、版本化的 Mock 子集；真实 oracle 和 P9b/P9c
-扩展仍不存在。
+表示运行时代码必须保持该语义。P9a 已实现严格、版本化的 Mock 子集；P9b 已实现受限离线
+角色 Mock。P9c 扩展与真实 oracle 仍不存在。
 
 ### 2. EBBO 使用独立的多维审计账本
 
@@ -58,7 +58,9 @@ JSON-safe 概念契约、字段约束和状态转换由 `docs/paper_spec/ebbo_de
 
 本设计不复用、不扩写也不改变 Stage 2--5 `BudgetLedger` 的现有语义。P9a 已在独立
 `roco_ebbo.ebbo.ledger.EBBOLedger` 中实现 `ebbo-ledger-v1` 并关闭 G-042；未来桥接或扩展仍须新
-schema、迁移/兼容测试和旧 smoke 不变。
+schema、迁移/兼容测试和旧 smoke 不变。P9b 在同一独立 ledger 中增补 fake role calls/input/output
+synthetic tokens 与可选角色 ceilings；no-role 的 P9a `to_dict`/replay 保持原值，oracle accepted-attempt
+记账语义未变。
 
 ### 3. 稳定身份、随机性和重放不依赖墙钟
 
@@ -153,9 +155,9 @@ simple regret；cumulative regret、cost-to-target、失败率、wall-clock 和�
 
 ### 8. 后续任务严格按 P9a、P9b、P9c、P10 分离
 
-- **P9a（工作树已验证，未提交/发布）**：确定性 Mock expensive-oracle、四个概念数据契约、独立
+- **P9a（`4189f65970feab0a17299445641916c6245de4a8` 已发布）**：确定性 Mock expensive-oracle、四个概念数据契约、独立
   Observation/ledger、串行最小 BO baseline；只产生工程控制流证据。
-- **P9b**：四角色控制层和只能引用有限 candidate pool 的 resource-integrator 调度；不增加真实 oracle。
+- **P9b（工作树离线验证，未提交/发布）**：四角色控制层和只能引用有限 candidate pool 的 resource-integrator 调度；不增加真实 oracle。
 - **P9c**：异步/pending/failure-aware 调度、reservation、取消、恢复和 late-result 审计。
 - **P10**：只有用户明确授权 benchmark、来源、许可证、真实 provider/oracle 和硬预算后，才能设计并
   执行真实实验；统计计划也必须在运行前冻结。
@@ -190,9 +192,38 @@ P9a smoke 的固定 root seed 为 `9061`，五次串行成功得到 5 oracle cal
 20 candidate proposals、5 `mock-evaluation-unit`、0 LLM calls/tokens、0 财务成本、
 `network=unused`。这些是精确工程回归计数，不是 regret、benchmark 或方法性能证据。
 
+### 10. P9b 受限角色 Mock 决策
+
+P9b 新增 `ebbo-role-request-v1`、`ebbo-role-response-v1`、`ebbo-role-audit-v1` 和
+`ebbo-restricted-role-control-v1`。请求提供当前有限池的 entry ID、由 Mock 整数域派生的
+`negative/zero/positive` region ID、唯一已登记 acquisition strategy ID、只读 mean/uncertainty/
+score、已提交 observation ID 列表与稳定 posterior-view ID、剩余 oracle-call 数。角色看不到原始候选
+`x`，也没有 oracle permit。相同 iteration 的四角色读取同一已提交 observation/pool snapshot；
+后续迭代可因选择不同而形成不同事实历史。这里的 posterior-view ID 不是概率 posterior 声明。
+
+Explorer/Exploiter 只能提交池内 entry/region/strategy ID 和有限非负偏好权重；Critic 必须对每个
+池条目给出 uncertainty/constraint/failure/cost 四类风险与 veto 建议；Integrator 只能提交池内
+entry ID 的无重复排序与首位选择。未知字段、未知 ID、重复选择、越权候选/score/ledger 字段、非有限
+权重或不匹配的请求身份均拒绝。`veto_mode=advisory` 只审计建议；`hard` 将有效 veto 条目排除，
+若全部被 veto 则不 dispatch。无效响应、provider error/timeout 或角色调用/token ceiling 耗尽均写
+结构化审计，退回 P9a acquisition 排序；有效 hard veto 仍在 fallback 中生效。
+
+provider 只能显式注入 `ebbo-deterministic-fake-role-provider-v1`，无 LLM/HTTP/密钥/网络。
+`llm_calls` 在此仅记录 fake role invocation，tokens 是 UTF-8 字节数向上按四字节分组的合成
+计数，不是实际 tokenizer 或计费量，财务成本为 0；两者绝不折算为 oracle calls。P9b 的
+`RestrictedRoleScheduler` 在未改动的 P9a `SerialScheduler.dispatch` 前复核原 pool hash/顺序、
+entry membership、duplicate、Mock `none-v1` 约束/域与预算；角色不能直接 dispatch。异步、真实
+约束、真实成本感知和 memory 仍留给 P9c/P10 或新 gap。
+
+四路径 `full/no_roles/no_critic/no_integrator` 共用 P9a Mock oracle、搜索域、root seed 9061、
+空初始事实、候选池规则和 5-call ceiling。每路径为 5 oracle calls、5 success、20 proposals、
+5 Mock cost、0 财务成本、`network=unused`；fake role calls 分别 20/0/15/15。no_roles
+直接执行 P9a baseline，replay checksum 保持
+`7d4b4da802d2cd4e29742b74fa9e3866b4ab319a27d207e1ce4c8e79fac5da01`。
+这只是离线控制流/权限/重放证据，不是性能比较或多智能体优越性证据。
+
 ## 后果
 
 该决策使昂贵 oracle 的不可追回消耗、语言角色的权限和 posterior/candidate-pool 的统计边界可审计，
-并为串行 Mock 到异步真实实验提供分层路径。P9a 现在只产生一个串行工程 baseline，不产生性能数字、
-多智能体效果或真实 provider 能力；真实 benchmark/noise/constraints/cost、并发、角色和统计仍须以后
-用证据和测试逐项关闭。所有这些限制是有意边界，不能通过修改现有 Stage 2--5 行为来规避。
+并为串行 Mock 到异步真实实验提供分层路径。P9a/P9b 现在只产生串行工程 Mock 控制流证据，不产生性能数字、多智能体效果或真实 provider 能力；
+真实 benchmark/noise/constraints/cost、并发、memory 和统计仍须以后用证据和测试逐项关闭。所有这些限制是有意边界，不能通过修改现有 Stage 2--5 行为来规避。

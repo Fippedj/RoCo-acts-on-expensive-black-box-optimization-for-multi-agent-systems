@@ -15,6 +15,7 @@ from typing import Any
 from roco_ebbo import __version__
 from roco_ebbo.core import RunManifest
 from roco_ebbo.ebbo import load_ebbo_smoke_settings, run_ebbo_smoke
+from roco_ebbo.ebbo.role_runtime import load_role_smoke_settings, run_role_smoke
 from roco_ebbo.experiments import (
     execute_mkp_experiment,
     execute_tsp_experiment,
@@ -54,6 +55,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="new directory for append-only audit, observations, and replay artifacts",
     )
+    role_smoke = subparsers.add_parser(
+        "ebbo-role-smoke", help="run the P9b offline four-path restricted role-control matrix"
+    )
+    role_smoke.add_argument("--config", required=True, type=Path)
+    role_smoke.add_argument("--output-dir", required=True, type=Path)
     experiment = subparsers.add_parser(
         "tsp-dry-run",
         help="run the offline TSP-50/100/200 protocol with the deterministic Mock provider",
@@ -98,13 +104,16 @@ def main() -> None:
         print(f"roco-ebbo={__version__}")
         print(f"python={sys.version.split()[0]}")
         print(f"platform={platform.platform()}")
-        print("status=stage6-p9a-ebbo-mock-offline; default_provider=mock; network=unused")
+        print("status=stage6-p9b-ebbo-role-mock-offline; default_provider=mock; network=unused")
         return
     if args.command == "smoke":
         _run_smoke_command(args.config, args.runs_dir)
         return
     if args.command == "ebbo-smoke":
         _run_ebbo_smoke_command(args.config, args.output_dir)
+        return
+    if args.command == "ebbo-role-smoke":
+        _run_ebbo_role_smoke_command(args.config, args.output_dir)
         return
     if args.command == "tsp-dry-run":
         _run_tsp_dry_run_command(args.config, args.output_dir, args.dataset_manifest)
@@ -245,6 +254,23 @@ def _run_ebbo_smoke_command(config_path: Path, output_dir: Path) -> None:
     print("financial_cost=0")
     print("network=unused")
     print(f"replay_checksum={run.replay_checksum}")
+    print(f"output_dir={output_dir}")
+
+
+def _run_ebbo_role_smoke_command(config_path: Path, output_dir: Path) -> None:
+    settings = load_role_smoke_settings(config_path)
+    results = run_role_smoke(settings, output_dir=output_dir)
+    for mode, result in results.items():
+        ledger = result.ledger
+        print(
+            f"mode={mode} oracle_calls={ledger.oracle_calls} "
+            f"evaluations_succeeded={ledger.evaluations_succeeded} "
+            f"evaluations_failed={ledger.evaluations_failed} "
+            f"candidate_proposals={ledger.candidate_proposals} "
+            f"llm_calls={ledger.llm_calls} tokens={ledger.tokens} "
+            f"known_cost={ledger.known_cost:g} replay_checksum={result.replay_checksum}"
+        )
+    print("financial_cost=0 network=unused")
     print(f"output_dir={output_dir}")
 
 

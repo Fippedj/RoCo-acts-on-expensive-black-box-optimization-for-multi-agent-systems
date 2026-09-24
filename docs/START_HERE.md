@@ -37,15 +37,18 @@ published as `6efec47` from released baseline `08712c5a065818889b1b11b315dadafee
 still determine current HEAD/upstream/ahead-behind. ADR-0008 and `paper_spec/ebbo_design.md` freeze the
 Stage 6 design boundary.
 
-P9a is implemented and locally verified in the current working tree, but is not committed or published.
-It adds `src/roco_ebbo/ebbo/`, `configs/smoke/ebbo_mock.yaml`, `ebbo-smoke`, and independent tests. The
+P9a was published by `4189f65970feab0a17299445641916c6245de4a8`. It adds
+`src/roco_ebbo/ebbo/`, `configs/smoke/ebbo_mock.yaml`, `ebbo-smoke`, and independent tests. The
 engineering baseline is a deterministic nearest-observation surrogate plus minimization LCB over a
 finite integer Mock domain; it is not a paper method, external benchmark, calibrated BO model, or
 performance result. The exact smoke ledger is 5 oracle calls, 5 success/0 failure evaluations, 20
 candidate proposals, 5 mock-evaluation-unit, zero LLM/token/financial cost, and `network=unused`.
 
-The next implementation task is P9b only: restricted role control that can select only from the P9a
-candidate pool. P9c later adds async/pending/failure-aware scheduling and recovery. P10 requires separate
+P9b is locally verified in the current worktree, but is not committed or published. It adds strict
+role messages, an injected offline fake provider, role call/token accounting, a restricted pool-only
+selection gate, and full/no-roles/no-critic/no-integrator Mock paths. The next implementation task is
+P9c: async/pending/failure-aware scheduling and recovery, without changing P9a/P9b serial replay.
+P10 requires separate
 explicit authorization for benchmark/source/license, real provider/oracle and hard budgets. Do not
 collapse these gates.
 
@@ -125,8 +128,9 @@ The RoCo path writes `collaboration_trace.jsonl` in the run directory, one seria
 This trace is short-lived run evidence. Stage 3 itself does not implement LTReflect, cross-generation memory storage/retrieval, or memory-guided mutation; Stage 4 V1 supplies those capabilities through a separate opt-in runtime. Their design is frozen in `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`. A transport-neutral adapter now exists, but real provider transport/interoperability, expensive black-box optimization, and other benchmarks remain out of scope.
 
 For Stage 6, “out of scope” in the preceding historical Stage 3 description refers to that Stage 3
-runtime: ADR-0008 and `paper_spec/ebbo_design.md` define the EBBO boundary; independent P9a now provides
-only a serial engineering Mock, while P9b/P9c/P10 remain unimplemented.
+runtime: ADR-0008 and `paper_spec/ebbo_design.md` define the EBBO boundary; independent P9a provides
+a published serial engineering Mock, while P9b adds a verified but unpublished
+restricted role Mock. P9c/P10 remain unimplemented.
 
 P3b adds `configs/smoke/tsp_memory_mock.yaml` as a separate, explicit opt-in.
 With two generations, `T=2`, and one memory elite, its no-failure accounting is 44 Mock LLM calls
@@ -160,7 +164,11 @@ python -m roco_ebbo smoke --config configs/smoke/tsp_roco_mock.yaml
 python -m roco_ebbo smoke --config configs/smoke/tsp_memory_mock.yaml
 python -m roco_ebbo ebbo-smoke --config configs/smoke/ebbo_mock.yaml \
   --output-dir /tmp/roco-ebbo-p9a-smoke
+python -m roco_ebbo ebbo-role-smoke --config configs/smoke/ebbo_role_mock.yaml \
+  --output-dir /tmp/roco-ebbo-p9b-smoke
 git diff --check
 ```
 
-The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 defines P6 offline TSP protocol/dry-run; ADR-0007 and `paper_spec/multicop_experiment_protocol.md` define P7a's evidence/statistics boundary. The P7b-0 provenance freezes only the specifically authorized FSU MKP source and checksums. ADR-0008 and `paper_spec/ebbo_design.md` freeze Stage 6 design; P9a adds only the serial offline engineering Mock runtime described above. Query live Git for commit and publication status. None authorizes real-provider interoperability, another data source, model experiments, paper-reproduction claims, a real expensive oracle, or paid EBBO experiments without a separate task.
+The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 defines P6 offline TSP protocol/dry-run; ADR-0007 and `paper_spec/multicop_experiment_protocol.md` define P7a's evidence/statistics boundary. The P7b-0 provenance freezes only the specifically authorized FSU MKP source and checksums. ADR-0008 and `paper_spec/ebbo_design.md` freeze Stage 6 design; published P9a adds the serial offline
+engineering Mock, and locally verified P9b adds only the restricted offline four-role Mock described
+above. Neither provides real oracle, memory, async workers, or performance evidence. Query live Git for commit and publication status. None authorizes real-provider interoperability, another data source, model experiments, paper-reproduction claims, a real expensive oracle, or paid EBBO experiments without a separate task.
