@@ -1,6 +1,6 @@
 # ADR-0008：Stage 6 多智能体昂贵黑盒优化设计
 
-- 状态：Accepted；P8 `6efec47` 与 P9a `4189f65970feab0a17299445641916c6245de4a8` 已发布；P9b 本地提交 `fa3b464`；P9c 工作树 Mock 完整离线验收通过、未提交/发布
+- 状态：Accepted；P8 `6efec47` 与 P9a `4189f65970feab0a17299445641916c6245de4a8` 已发布；P9b `fa3b464` 与 P9c `b698649cdf360d56eb063fc257a0e6614a53b733` 已发布；P9c 仅通过离线 Mock 验收
 - 日期：2026-09-22
 - 基线：`08712c5a065818889b1b11b315dadafee9437d06`
 - 上游：ADR-0001、ADR-0003、ADR-0004、ADR-0007、
@@ -31,7 +31,7 @@ oracle 是通过 `OracleRequest`/`OracleResult` 访问的昂贵评估边界。�
 
 JSON-safe 概念契约、字段约束和状态转换由 `docs/paper_spec/ebbo_design.md` 唯一定义。这里的“概念”
 表示运行时代码必须保持该语义。P9a 已实现严格、版本化的串行 Mock；P9b 已实现受限离线
-角色 Mock；P9c 已在工作树实现单进程 fake-async Mock。真实 oracle 与远端异步仍不存在。
+角色 Mock；P9c 已发布单进程 fake-async Mock。真实 oracle 与远端异步仍不存在。
 
 ### 2. EBBO 使用独立的多维审计账本
 
@@ -157,10 +157,11 @@ simple regret；cumulative regret、cost-to-target、失败率、wall-clock 和�
 
 - **P9a（`4189f65970feab0a17299445641916c6245de4a8` 已发布）**：确定性 Mock expensive-oracle、四个概念数据契约、独立
   Observation/ledger、串行最小 BO baseline；只产生工程控制流证据。
-- **P9b（本地提交 `fa3b464`）**：四角色控制层和只能引用有限 candidate pool 的 resource-integrator 调度；不增加真实 oracle。
-- **P9c（工作树 Mock 已验证、未提交/发布）**：单进程 fake-async pending、reservation、取消确认、失败/成本账本、显式恢复和 late-result 审计；不实现真实 worker。
+- **P9b（`fa3b464` 已发布）**：四角色控制层和只能引用有限 candidate pool 的 resource-integrator 调度；不增加真实 oracle。
+- **P9c（`b698649` 已发布，离线 Mock 已验证）**：单进程 fake-async pending、reservation、取消确认、失败/成本账本、显式恢复和 late-result 审计；不实现真实 worker。
 - **P10**：只有用户明确授权 benchmark、来源、许可证、真实 provider/oracle 和硬预算后，才能设计并
-  执行真实实验；统计计划也必须在运行前冻结。
+  执行真实实验；统计计划也必须在运行前冻结。离线待决字段见
+  `docs/paper_spec/p10_experiment_preregistration_template.md`；模板不授权实验。
 
 不得把 P9a 的串行 Mock 实现描述成异步、真实昂贵 oracle 或多智能体效果验证；不得为了加速而合并
 这些阶段并越过前置 gap。

@@ -5,8 +5,8 @@ Method-level reproduction of **RoCo: Role-Based LLMs Collaboration for Automatic
 This repository contains deterministic Stage 2/3 baselines, the published Stage 4 V1 opt-in offline
 memory path, a Stage 5 TSP-only Mock dry-run, a P7a multi-COP/statistics design, one P7b FSU MKP
 offline integration protocol, and the completed Stage 6 EBBO design specification. Stage 6 runtime
-now includes published P9a serial and locally committed P9b restricted-role engineering Mock paths,
-plus a worktree-only P9c deterministic fake-async Mock path. P9c is not yet committed or published;
+now includes published P9a serial, P9b restricted-role, and P9c deterministic fake-async engineering
+Mock paths. P9c was published as `b698649cdf360d56eb063fc257a0e6614a53b733`;
 real experiments have **not** started. The repository does **not**
 claim to be the authors' official implementation or a completed paper reproduction. No HTTP transport,
 real-provider interoperability run, statistical experiment, or paper experiment has been performed.
@@ -70,6 +70,7 @@ Do not develop under `/mnt/c/...` for normal work; Linux-native paths have more 
 | `docs/data_provenance/mkp_fsu_knapsack_multiple_v1.md` | Authorized FSU source/license, raw checksums, parser/evaluator/split and E3 boundary |
 | `docs/paper_spec/multicop_experiment_protocol.md` | P7a candidate-COP registry, run-record contract, comparability, and preregistered analysis plan |
 | `docs/paper_spec/ebbo_design.md` | JSON-safe EBBO contracts, data flow, pending semantics, evaluation plan, and P9 task split |
+| `docs/paper_spec/p10_experiment_preregistration_template.md` | Offline P10 decisions, preregistration fields, and E2/E3/E4 gates; no experiment authorization |
 | `configs/providers/openai_compatible_fake.example.yaml` | Documentation-only, no-key fake-transport adapter example |
 | `src/roco_ebbo/llm/openai_compatible.py` | Transport-neutral EoH/RoCo adapter and audit contracts; no HTTP implementation |
 | `src/roco_ebbo/ebbo/` | Independent P9a foundation, P9b roles, and opt-in P9c fake-async ledger/scheduler/recovery |
@@ -293,8 +294,8 @@ search space, root seed, initial state, finite-pool rule, and 5-call ceiling. Ea
 oracle calls, 20 proposals, and 5 Mock cost units; role calls are 20/0/15/15 respectively, with
 financial cost 0 and `network=unused`. The no-role checksum remains the published P9a checksum
 `7d4b4da802d2cd4e29742b74fa9e3866b4ab319a27d207e1ce4c8e79fac5da01`. These are
-control-flow/replay facts, not performance evidence. P9b has local commit `fa3b464`; the local
-upstream-tracking ref matched at this worktree check, without a fresh network verification.
+control-flow/replay facts, not performance evidence. P9b commit `fa3b464` is an ancestor of the
+published P9c commit `b698649`.
 
 P9c adds an opt-in, single-process deterministic fake-async scheduler (smoke concurrency 2),
 outstanding call/expected-cost reservations, completion-order audit, cancellation acknowledgement,
@@ -308,17 +309,17 @@ worker, probabilistic BO, cost-aware optimization, benchmark, or performance res
 
 P9c's local offline acceptance passed: 221 pytest tests passed, 1 skipped; Ruff check and format check,
 mypy over 44 source files, doctor, the unchanged Stage 2/3/4 and P9a/P9b smoke contracts, the P9c
-CLI smoke, and `git diff --check`. This verifies the worktree Mock path only; it has not been staged,
-committed, or published.
+CLI smoke, and `git diff --check`. This verifies the offline Mock path only, not a real experiment.
 
 The required implementation order is:
 
 1. P9a: published by `4189f65970feab0a17299445641916c6245de4a8`.
-2. P9b: restricted four-role Mock control, locally committed as `fa3b464`.
-3. P9c: opt-in fake-async pending/cancellation/recovery engineering Mock, verified in the worktree;
-   not committed/published. Real async reconciliation and cost-aware acquisition remain open.
-4. P10: only after explicit authorization of benchmark, source, license, real provider/oracle, and hard
-   budgets, preregister and run real experiments.
+2. P9b: restricted four-role Mock control, published as `fa3b464`.
+3. P9c: opt-in fake-async pending/cancellation/recovery engineering Mock, published as `b698649`.
+   Real async reconciliation and cost-aware acquisition remain open.
+4. P10: use `docs/paper_spec/p10_experiment_preregistration_template.md` to record unset decisions;
+   only after explicit authorization of benchmark, source, license, real provider/oracle, and hard
+   budgets may a separate preregistered real experiment proceed.
 
 Until P10 has E4 artifacts, the project makes no EBBO performance, significance, generalization, or
 superiority claim and never aggregates raw scores across benchmarks.

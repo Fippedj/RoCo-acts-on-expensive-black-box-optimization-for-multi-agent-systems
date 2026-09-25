@@ -66,10 +66,11 @@ config：P6 的 3 seeds 与 `24/120000/24/24/1 USD/120 s` 仍只适用于 ADR-00
 ## Stage 6 EBBO 设计参数
 
 本节登记 ADR-0008 与 `ebbo_design.md` 的工程参数，不是 RoCo 论文披露值。P9a 已由
-`4189f65970feab0a17299445641916c6245de4a8` 发布；P9b 本地提交为 `fa3b464`；P9c
-仅在工作树完整离线验收通过、未提交/发布。P9c 门禁为 221 passed/1 skipped、Ruff
+`4189f65970feab0a17299445641916c6245de4a8` 发布；P9b `fa3b464` 和 P9c
+`b698649cdf360d56eb063fc257a0e6614a53b733` 也已发布。P9c 门禁为 221 passed/1 skipped、Ruff
 check/format、mypy（44 source files）、doctor、六条旧/新 CLI smoke 和 `git diff --check`。
-`unset` 需以后用 gap 关闭证据和版本化配置决定。
+`unset` 需以后用 gap 关闭证据和版本化配置决定。P10 待决参数与授权闸门见
+`p10_experiment_preregistration_template.md`；模板不设置运行默认值。
 
 | 参数名 | Stage 6 冻结值/候选 | 当前状态 | 适用与证据边界 |
 |---|---|---|---|
@@ -91,7 +92,7 @@ check/format、mypy（44 source files）、doctor、六条旧/新 CLI smoke 和 
 | `ebbo.scheduler.pending_policy` | in-flight 与已接受候选排除；不做 fantasy | P9c Mock 已验证 | 仅成功观测进入已有 surrogate；失败仍占历史 duplicate 集合 |
 | `ebbo.budget.async_ledger_schema` | `ebbo-async-ledger-v1`；expected-cost hold + accepted call + actual settlement | P9c Mock 已验证 | accepted 不退款；实际超额照实记录并关闭新准入；未知成本 fail-closed |
 | `ebbo.checkpoint.schema` | `ebbo-async-checkpoint-v1`；完整动作 commit-last | P9c Mock 已验证 | strict config/run/store/ledger/pending 交叉校验；仅显式边界恢复，不承诺真实远端 exactly-once |
-| `ebbo.roles` | global explorer、local exploiter、model critic、resource integrator | P9b 本地提交 `fa3b464` | Integrator 只引用有限 pool entry，scheduler 唯一 dispatch；见 G-051 |
+| `ebbo.roles` | global explorer、local exploiter、model critic、resource integrator | P9b `fa3b464` 已发布 | Integrator 只引用有限 pool entry，scheduler 唯一 dispatch；见 G-051 |
 | `ebbo.roles.request_schema` / `response_schema` / `audit_schema` | `ebbo-role-request-v1` / `ebbo-role-response-v1` / `ebbo-role-audit-v1` | P9b 已验证 | 严格 JSON、完整 SHA-256 ID、池内 entry/region/strategy、四类 Critic risk、Integrator 唯一选择；角色没有 oracle permit |
 | `ebbo.roles.provider` / `token_accounting` | `ebbo-deterministic-fake-role-provider-v1` / UTF-8 bytes ÷ 4 向上取整 | P9b 工程 Mock 已验证 | 无真实 LLM/HTTP/key/network；`llm_calls` 仅计 fake invocation；tokens 不代表真实 tokenizer 或账单 |
 | `ebbo.roles.veto_mode` / `fallback` | smoke `advisory`；可选 `hard` / P9a acquisition score+ID 排序 | P9b 已验证 | hard 排除有效 veto；全部 veto 则不 dispatch；非法输出、provider error/timeout、角色预算耗尽均审计回退 |

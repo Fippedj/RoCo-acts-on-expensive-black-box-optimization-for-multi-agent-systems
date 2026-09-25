@@ -71,8 +71,8 @@ snapshot:
   stage6_p8_status: "published"
   stage6_p9a_commit: 4189f65970feab0a17299445641916c6245de4a8
   stage6_p9a_status: "published; deterministic serial offline engineering Mock"
-  stage6_p9b_status: "local commit fa3b464609354cd24b124c08a5522ef049537817; local upstream-tracking ref 0/0 at P9c check; remote not freshly verified"
-  stage6_p9c_status: "fully validated offline in worktree; not staged, committed, or published"
+  stage6_p9b_status: "published as fa3b464609354cd24b124c08a5522ef049537817; ancestor of published P9c commit"
+  stage6_p9c_status: "published as b698649cdf360d56eb063fc257a0e6614a53b733; offline Mock acceptance passed; real async and P10 absent"
   stage6_runtime_implemented: "P9a serial Mock, P9b restricted-role Mock, and opt-in P9c single-process fake-async Mock only; real experiments absent"
   stage6_p9c_validation:
     pytest: "221 passed, 1 skipped; completed before final documentation-only update"
@@ -260,8 +260,9 @@ P8 所在的当前 Stage 6 design worktree：
 该 worktree 的分支是 `stage/06-ebbo-design`，P8 基线是已发布的
 `08712c5a065818889b1b11b315dadafee9437d06`，P8 设计由 `6efec47` 发布。P9a 开始时分支跟踪
 `origin/stage/06-ebbo-design` 且 ahead/behind 为 0/0；P9a 后由 `4189f65970feab0a17299445641916c6245de4a8`
-发布。P9b 本地提交为 `fa3b464609354cd24b124c08a5522ef049537817`；P9c 当前仅在工作树。
-本地 upstream 跟踪引用在 P9c 起点为 0/0，但没有通过网络重新核实远端当前状态。
+发布。P9b `fa3b464609354cd24b124c08a5522ef049537817` 是 P9c 的祖先；P9c 已由
+`b698649cdf360d56eb063fc257a0e6614a53b733` 发布。此发布状态来自 P9c 提交的只读远端
+分支核验记录；本次文档更新未重复联网核验。
 
 `stage/04-reflection-memory` 已通过 `59c3357` 发布完整 Stage 4 V1。P6 本地基线为 P5
 状态提交 `7969b0d`，实现/状态提交为 `a94ce0c`/`7302ddd`；P7a 是已设计的文档子任务，
@@ -341,7 +342,7 @@ smoke 会在被 Git 忽略的 `runs/` 下生成 manifest、summary、events 和 
 | Stage 3：四角色协作 | 已提交并发布远端分支 | 四角色、T 轮状态机、失败降级、trace、独立 smoke、测试与 ADR-0003 | 100% |
 | Stage 4：反思与跨代记忆 | 已由 `59c3357` 发布 | ADR-0004、事实/恢复底座、opt-in 摘要/检索/截断/mutation、显式 resume 与离线消融 | 冻结 V1 离线 Mock 实现 100% |
 | Stage 5：论文实验对齐 | P5/P6/P7a 有本地提交；P7b-0/P7b 与 upstream 状态须实时查询 | P6 合成 TSP Mock dry-run；P7a 证据协议；P7b 为 FSU MKP 提供 `protocol-only` E3 离线 Mock 协议 | P5/P6/P7a 和该 MKP E3 子范围完成；真实实验/论文对齐仍未完成 |
-| Stage 6：多智能体 EBBO | P8/P9a 已发布；P9b 本地提交 `fa3b464`；P9c 工作树已验证、未提交/发布 | P9a 串行 Mock；P9b 受限四角色；P9c 可选 fake-async pending/取消/恢复 Mock | P8/P9a/P9b/P9c 限定工程范围完成；真实异步与 P10 未开始 |
+| Stage 6：多智能体 EBBO | P8/P9a/P9b/P9c 已发布；P9c 仅完成离线 Mock 验收 | P9a 串行 Mock；P9b 受限四角色；P9c 可选 fake-async pending/取消/恢复 Mock | P8/P9a/P9b/P9c 限定工程范围完成；真实异步与 P10 未开始 |
 
 以“六阶段是否具有可运行实现”粗略计数，仍只完成前四阶段的既定 V1 范围，约为 4/6。
 P5 完成 provider 协议与离线安全底座，P6 完成 TSP-only 合成协议和 Mock/fake dry-run，P7a
@@ -530,7 +531,7 @@ status / error_type / error_message
 - 这只关闭 FSU MKP 的 G-038/G-039/G-040 E3 子项。G-041、E4/真实 provider、reference 最优性、
   其他 COP 与论文数值复现仍开放；实现和发布状态一律实时 Git 查询。
 
-### 6.11 Stage 6 P8/P9a/P9b/P9c：P9b 已本地提交；P9c 工作树离线 Mock 完整验收通过
+### 6.11 Stage 6 P8/P9a/P9b/P9c：P9b/P9c 已发布；P9c 离线 Mock 完整验收通过
 
 - ADR-0008 区分昂贵 oracle black-box 与论文 prompt visibility，并冻结单目标 minimize、可选
   `g_i(x)<=0` 约束、失败/超时/噪声/成本和预算边界。
@@ -559,18 +560,20 @@ status / error_type / error_message
   dispatch 前再校验 pool、domain/constraint、duplicate 和预算。
 - P9b 四路径 full/no_roles/no_critic/no_integrator 使用相同 Mock 与 root seed，分别为 20/0/15/15
   次 fake role calls；每路径均为 5 oracle calls、5 success、20 proposals、5 Mock cost、0 财务成本、
-  `network=unused`。no_roles 的 replay checksum 保持 P9a 原值。P9b 已有本地提交 `fa3b464`。
+  `network=unused`。no_roles 的 replay checksum 保持 P9a 原值。P9b 已由 `fa3b464` 发布。
 - P9c 仅新增 opt-in 单进程 deterministic fake-async Mock：`max_concurrency=2` 的 pending
   reservation/expected-cost hold、取消确认、乱序完成、独立 async ledger 和 commit-last checkpoint。
   smoke 为 5 calls、3 success/2 failure、20 proposals、5 synthetic Mock cost、0 LLM/tokens、
   `network=unused`，中断恢复与不中断的非时间 replay checksum 同为
-  `085fac4aa00ca567f055ab87b87084c896cfd463d5eb7a51741ccbae84e0e47f`。P9c 未提交/发布。
+  `085fac4aa00ca567f055ab87b87084c896cfd463d5eb7a51741ccbae84e0e47f`。P9c 已由
+  `b698649cdf360d56eb063fc257a0e6614a53b733` 发布。
 - P9c 本地完整门禁：221 passed/1 skipped；Ruff check/format、mypy（44 source files）、doctor、
   Stage 2/3/4 与 P9a/P9b/P9c 六条离线 CLI smoke、`git diff --check` 均通过。仅表示工程 Mock 验收。
 - G-042 已关闭；G-043/G-044 的 P9b 共享读取/池内选择子项、G-051 的角色权限/降级/四路径子项
   已关闭。G-048/G-052 的 P9c Mock pending/recovery 子项已关闭；真实异步、G-049 成本感知
   acquisition、G-050 统计与 G-051 memory 仍开放。
-  没有 E4 工件不得作 EBBO 性能或优越性结论。
+  没有 E4 工件不得作 EBBO 性能或优越性结论。P10 的离线待决字段与授权闸门见
+  `docs/paper_spec/p10_experiment_preregistration_template.md`；模板不授权真实实验。
 
 仓库仍没有 GP/神经 surrogate、概率 BO、EBBO memory、async worker、真实 EBBO benchmark、
 真实昂贵 oracle、真实 LLM 调用、网络调用或付费实验。
@@ -657,8 +660,8 @@ snapshot 的 G-037–G-040 子项；G-041 和任何 E4/正式实验仍未关闭�
 ### Stage 6
 
 P8 已完成文档设计；P9a 已发布 deterministic Mock oracle、strict contracts、独立 ledger/store、
-finite pool、serial scheduler 和 nearest-observation/LCB 工程 baseline。P9b 已本地提交四角色受限
-Mock；P9c 在工作树实现并验证 opt-in fake-async pending/取消/恢复，尚未提交/发布。
+finite pool、serial scheduler 和 nearest-observation/LCB 工程 baseline。P9b 已由 `fa3b464`
+发布四角色受限 Mock；P9c 已由 `b698649` 发布 opt-in fake-async pending/取消/恢复 Mock。
 以下能力仍未实现：
 
 - 任何真实昂贵 oracle adapter、真实 benchmark 或网络 transport；
@@ -683,8 +686,8 @@ P0  Stage 3 最终审计/小范围加固（已完成）
   -> 后续 Stage 5 实施（须另行授权具体 COP/E4 数据、provider 与预算；G-041 仍开放）
   -> P8  Stage 6 EBBO 设计规格（`6efec47` 已发布）
   -> P9a deterministic Mock expensive-oracle + Observation/ledger + 串行最小 baseline（`4189f65` 已发布）
-  -> P9b 受限四角色控制层 + finite candidate-pool-only 调度（本地提交 `fa3b464`）
-  -> P9c opt-in fake-async pending/失败账本/取消与显式恢复（工作树已验证；未提交/发布）
+  -> P9b 受限四角色控制层 + finite candidate-pool-only 调度（`fa3b464` 已发布）
+  -> P9c opt-in fake-async pending/失败账本/取消与显式恢复（`b698649` 已发布；仅 Mock）
   -> P10 仅在明确授权 benchmark/source/license、真实 provider/oracle 和硬预算后开展实验
 ```
 
@@ -902,14 +905,14 @@ P8 已在发布基线 `08712c5a065818889b1b11b315dadafee9437d06` 上完成并由
 ADR-0008 和 `paper_spec/ebbo_design.md` 冻结 expensive-oracle 与 prompt black-box 的区别、JSON-safe
 request/result/observation/status、独立 EBBO ledger、accepted-attempt 结算、稳定 ID/seed、模块数据流、
 共享 posterior、有限 candidate pool、角色权限、pending/异步未来语义、评测/消融与 P9/P10 闸门。
-P9a 已由 `4189f65970feab0a17299445641916c6245de4a8` 发布；P9b 已本地提交 `fa3b464`。
-P9c fake-async Mock 在工作树验证，但尚未提交/发布。HEAD、status、upstream 必须实时查询；
-不能凭本地跟踪引用推断远端现状。
+P9a 已由 `4189f65970feab0a17299445641916c6245de4a8` 发布；P9b `fa3b464` 为已发布
+P9c `b698649cdf360d56eb063fc257a0e6614a53b733` 的祖先。P9c 只通过离线 fake-async Mock
+验收；HEAD、status、upstream 仍须实时查询，不能凭本地跟踪引用推断远端现状。
 
-下一步先审查并提交 P9c 工程 Mock；真实异步/reconciliation 或 P10 均需要独立授权和协议。
-P10 必须
-重新取得用户对 benchmark、来源、许可证、真实 oracle/provider、硬预算和统计计划的明确授权。
+下一步使用 `docs/paper_spec/p10_experiment_preregistration_template.md` 登记仍为 `unset` 的决策；
+真实异步/reconciliation 或 P10 实验均需要独立授权和协议。P10 必须重新取得用户对 benchmark、
+来源、许可证、真实 oracle/provider、硬预算和统计计划的明确授权。
 
-Stage 6 当前准确状态是“P8/P9a 已发布；P9b 有本地提交；P9c fake-async Mock 已在工作树验证、
-未提交/发布；真实异步和 P10 未实现”。
+Stage 6 当前准确状态是“P8/P9a/P9b/P9c 已发布；P9c 仅通过 fake-async 工程 Mock 验收；
+真实异步和 P10 未实现”。
 没有 E4 工件，不得作性能、显著性、泛化、优越性或论文复现结论。

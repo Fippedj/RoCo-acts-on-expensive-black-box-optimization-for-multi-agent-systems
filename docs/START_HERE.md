@@ -44,22 +44,24 @@ finite integer Mock domain; it is not a paper method, external benchmark, calibr
 performance result. The exact smoke ledger is 5 oracle calls, 5 success/0 failure evaluations, 20
 candidate proposals, 5 mock-evaluation-unit, zero LLM/token/financial cost, and `network=unused`.
 
-P9b has local commit `fa3b464` and adds strict
+P9b was published as `fa3b464` and adds strict
 role messages, an injected offline fake provider, role call/token accounting, a restricted pool-only
-selection gate, and full/no-roles/no-critic/no-integrator Mock paths. The local upstream-tracking ref
-matched at the P9c start check; no fresh remote network verification was performed.
+selection gate, and full/no-roles/no-critic/no-integrator Mock paths. P9b is an ancestor of the
+published P9c commit `b698649`.
 
-P9c now has a worktree-only, opt-in deterministic fake-async Mock scheduler with pending cost/call holds,
+P9c was published as `b698649cdf360d56eb063fc257a0e6614a53b733`. Its opt-in deterministic
+fake-async Mock scheduler has pending cost/call holds,
 failure and cancellation accounting, and explicit checkpoint-boundary resume. Its offline smoke is
 5 oracle calls, 3 successes, 2 failures, 5 synthetic Mock cost units, 0 LLM calls, `network=unused`;
-it is not yet committed/published and does not add real async workers or cost-aware BO.
+it does not add real async workers or cost-aware BO.
 
 P9c's complete local offline gate passed: 221 pytest tests passed, 1 skipped; Ruff check/format, mypy
 (44 source files), doctor, six Stage 2/3/4/P9a/P9b/P9c CLI smokes, and `git diff --check`.
 These are Mock control-flow/replay checks, not real-provider or performance evidence.
 
 P10 requires separate explicit authorization for benchmark/source/license, real provider/oracle and
-hard budgets. Do not collapse these gates.
+hard budgets. The offline decision template is `paper_spec/p10_experiment_preregistration_template.md`;
+it grants no authorization. Do not collapse these gates.
 
 The historical Stage 5 P7b worktree is `/home/fj/RoCo-BO/RoCo-ebbo-stage5-protocol` on
 `stage/05-tsp-protocol`; that line of work originally used local P5 status commit `7969b0d` as its P6
@@ -138,8 +140,8 @@ This trace is short-lived run evidence. Stage 3 itself does not implement LTRefl
 
 For Stage 6, “out of scope” in the preceding historical Stage 3 description refers to that Stage 3
 runtime: ADR-0008 and `paper_spec/ebbo_design.md` define the EBBO boundary; independent P9a provides
-a published serial engineering Mock, P9b has a local restricted-role Mock commit, and P9c adds only
-worktree fake-async Mock scheduling/recovery. Real remote reconciliation, cost-aware acquisition,
+a published serial engineering Mock, P9b has a published restricted-role Mock commit, and
+published P9c adds only fake-async Mock scheduling/recovery. Real remote reconciliation, cost-aware acquisition,
 benchmark experiments, and P10 remain unimplemented.
 
 P3b adds `configs/smoke/tsp_memory_mock.yaml` as a separate, explicit opt-in.
@@ -182,6 +184,6 @@ git diff --check
 ```
 
 The complete Stage 3 protocol and failure semantics are in `adrs/0003-stage3-roco-collaboration.md`. Read `paper_spec/algorithm.md` alongside it. Stage 4 is bounded by `adrs/0004-stage4-reflection-memory-design.md` and `paper_spec/memory.md`; P3a is the facts/recovery foundation, P3b adds summary/retrieval/truncation/mutation runtime behavior, and P4 adds engine resume equivalence and memory/no-memory ablation. Stage 4 V1 is complete. ADR-0005 defines the completed offline P5 adapter boundary; ADR-0006 defines P6 offline TSP protocol/dry-run; ADR-0007 and `paper_spec/multicop_experiment_protocol.md` define P7a's evidence/statistics boundary. The P7b-0 provenance freezes only the specifically authorized FSU MKP source and checksums. ADR-0008 and `paper_spec/ebbo_design.md` freeze Stage 6 design; published P9a adds the serial offline
-engineering Mock, P9b has a local commit for the restricted offline four-role Mock, and P9c adds an
-opt-in fake-async Mock path in the worktree. None provides a real oracle, memory, remote async worker,
+engineering Mock, P9b has a published commit for the restricted offline four-role Mock, and P9c adds a
+published opt-in fake-async Mock path. None provides a real oracle, memory, remote async worker,
 or performance evidence. Query live Git for commit and publication status; local tracking refs are not

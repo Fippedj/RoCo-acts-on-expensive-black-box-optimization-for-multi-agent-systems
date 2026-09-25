@@ -2,8 +2,9 @@
 
 ## 0. 状态、范围与术语
 
-本文冻结 Stage 6 EBBO 的概念接口和后续验收边界。状态是：**P8/P9a 已发布；P9b 有本地提交 `fa3b464`；
-P9c fake-async 工程 Mock 工作树完整离线验收通过、未提交/发布；真实异步和 P10 未开始**。本文不是论文事实，不表示
+本文冻结 Stage 6 EBBO 的概念接口和后续验收边界。状态是：**P8/P9a/P9b 已发布；
+P9c fake-async 工程 Mock 已由 `b698649cdf360d56eb063fc257a0e6614a53b733` 发布并通过离线验收；
+真实异步和 P10 未开始**。本文不是论文事实，不表示
 GP、概率校准、异步 worker、真实 benchmark、真实昂贵 oracle 或性能实验已经存在。ADR-0008 记录
 决策理由；本文件同时记录 P9a 已冻结的工程子集。
 
@@ -501,14 +502,14 @@ unknown pending 恢复、late result 和 failure-aware 调度。
 
 ### P9b：受限角色控制
 
-**本地提交 `fa3b464`；远端当前状态未作网络复核。** 实现 global explorer、local exploiter、
+**`fa3b464` 已发布，是 P9c 提交的祖先。** 实现 global explorer、local exploiter、
 model critic、resource integrator 的结构化控制层和 fake provider。Integrator 只能引用 P9a
 candidate pool；scheduler 仍是唯一 dispatch capability。保留同 surrogate/acquisition 的 no-role
 baseline 和四路径控制流消融。没有真实 LLM、oracle、benchmark 或性能实验。
 
 ### P9c：异步与失败恢复
 
-**工作树完整离线验收通过，尚未提交/发布。** opt-in 单进程 fake-async 实现多 reservation、
+**`b698649` 已发布，完整离线 Mock 验收通过。** opt-in 单进程 fake-async 实现多 reservation、
 pending exclusion、确定性乱序 completion、失败事实/成本准入、取消与 late-result 审计，
 以及完整动作边界的显式 checkpoint/resume。真实 worker、远端 reconciliation、任意指令点
 crash recovery、概率 failure model 和 cost-aware acquisition 均未实现；串行默认保持回归。
@@ -517,6 +518,8 @@ crash recovery、概率 failure model 和 cost-aware acquisition 均未实现；
 
 只有用户逐项明确授权 benchmark/source/license、真实 provider/oracle、凭据处理方式、硬预算、统计
 计划和结论范围后才可开始。P10 不由 Stage 6 设计或任何 Mock 测试自动授权。
+离线待决字段和 E2/E3/E4 闸门见
+`p10_experiment_preregistration_template.md`。
 
 ## 10. 已关闭的 P9a/P9b/P9c Mock 子项与仍开放内容
 
@@ -531,7 +534,7 @@ cost-aware acquisition（G-043--G-049 的后续子项）；全部指标/target/�
 Mock pending/取消/恢复工程子项。真实 LLM、memory、远端异步与统计仍开放。
 参数表中的 `unset` 是有意状态，不是库缺省值。
 
-## 11. P9c 工程 Mock 状态/恢复协议（已冻结并在工作树验证）
+## 11. P9c 工程 Mock 状态/恢复协议（已冻结并离线验证）
 
 `ebbo-async-mock-scheduler-v1` 仅由单进程确定性 fake completion script 推动；reserved 与
 accepted 合计不得超过显式 `max_concurrency`。调度再次验证有限池 hash、entry membership、

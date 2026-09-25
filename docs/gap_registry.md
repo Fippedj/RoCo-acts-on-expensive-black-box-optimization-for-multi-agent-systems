@@ -65,13 +65,16 @@
 ## 当前阻断项
 
 Stage 6 P8 设计由 `6efec47` 发布；P9a 由 `4189f65970feab0a17299445641916c6245de4a8`
-发布；P9b 本地提交 `fa3b464`，本地 upstream 引用在 P9c 起点为 0/0，未通过网络复核远端。
-P9c Mock 工作树完整离线验收通过、未提交/发布：221 passed/1 skipped，Ruff check/format、
+发布；P9b `fa3b464` 是已发布 P9c 提交的祖先，P9c 已由
+`b698649cdf360d56eb063fc257a0e6614a53b733` 发布。P9c Mock 完整离线验收通过：
+221 passed/1 skipped，Ruff check/format、
 mypy、doctor、六条 Stage 2/3/4/P9a/P9b/P9c smoke 和 `git diff --check` 均通过。
 G-042 与 G-052 Mock 子项关闭；G-043/G-044/G-047--G-049 仅关闭具体工程 Mock 子项。
 真实异步 reconciliation、真实成本/约束/噪声、G-050 统计、G-051
 memory/真实 LLM 均开放。P10 只有在用户明确授权 benchmark、来源、许可证、真实
-provider/oracle 和预算后才可关闭真实实验与统计子项。P9a/P9b/P9c Mock 不构成 E4 或性能证据。
+provider/oracle 和预算后才可关闭真实实验与统计子项。待决字段和 E2/E3/E4 闸门见
+`docs/paper_spec/p10_experiment_preregistration_template.md`；模板不关闭 gap，也不授权实验。
+P9a/P9b/P9c Mock 不构成 E4 或性能证据。
 
 Stage 3 的离线工程路径没有未解决的实现阻断项。ADR-0002 继续固定旧 EoH smoke；
 ADR-0003 固定四角色状态机、失败降级、配置分派和单代 trace。G-002–G-004 与
